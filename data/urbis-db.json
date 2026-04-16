@@ -1,0 +1,404 @@
+{
+  "users": [
+    {
+      "id": "dcb631cf-c84a-4c77-87bf-828e4d9bd270",
+      "name": "Super Admin URBIS",
+      "email": "super@urbis.local",
+      "passwordHash": "6673ca85606f021375ec623fb6cf4df0:23a51c52d45a628cb3f4fb9b13aa915bd52b8c959efd5f8b0c5784c73bfa2a7c5dfafee140799905c5572bb6c54f38a39d7dc9ef10625e76c5381ac666b15245",
+      "role": "superadmin",
+      "conjuntoId": null,
+      "avatarUrl": null,
+      "status": "active",
+      "createdAt": "2026-04-06T04:04:27.323Z",
+      "acceptedTermsAt": null
+    },
+    {
+      "id": "eeb37db7-6235-4c87-9654-03a30c0b07d4",
+      "name": "Admin Vista Norte",
+      "email": "admin@urbis.local",
+      "passwordHash": "47df8d4839b1b67d46e332810ff552d7:5e97bbdb0d75dbe0af106e15436f768a0ef326260182265a3db61765a07f31c37ea066751cdb4d5baac28f791de99a62b5356759018e49fe531d64403675e548",
+      "role": "admin_conjunto",
+      "conjuntoId": "398cb854-9c67-4f9f-9bff-84c287eb3d10",
+      "avatarUrl": null,
+      "status": "active",
+      "createdAt": "2026-04-06T04:04:27.323Z",
+      "acceptedTermsAt": null
+    },
+    {
+      "id": "fec1064b-1488-4f58-9f9e-aaa9aab1fafd",
+      "name": "Residente Demo",
+      "email": "residente@urbis.local",
+      "passwordHash": "04d727a905a1aed81291ec1f7d0c372b:c8e804d98346aa19f956674f9e3c7f8e17113962b48cb652f203d38918c75667b472c7b78bff22f91831d192d079913e7af9703b74d1716562442cb5160c82cf",
+      "role": "resident",
+      "conjuntoId": "398cb854-9c67-4f9f-9bff-84c287eb3d10",
+      "avatarUrl": null,
+      "status": "active",
+      "createdAt": "2026-04-06T04:04:27.323Z",
+      "acceptedTermsAt": null
+    },
+    {
+      "id": "67a721d8-36c5-4604-b7da-a80d17f2943c",
+      "name": "DIEGO IVAN",
+      "email": "diegivan17@hotmail.com",
+      "passwordHash": "ce44156dd1b950de69997de0d1f65e20:208161944ad97a6a2d4f3d72085e3f575e36a32c0860f6a34ed49a8419daf935d816ac2be4726b281c4f4a8a34b127ddeb7fc54bccd71dff61456f439866a76a",
+      "role": "admin_conjunto",
+      "conjuntoId": "0df4b7b5-36e1-4b10-be73-22fb4314156c",
+      "avatarUrl": null,
+      "status": "active",
+      "acceptedTermsAt": "2026-04-08T03:43:57.366Z",
+      "createdAt": "2026-04-08T03:43:57.366Z"
+    },
+    {
+      "id": "a0f98908-78ef-4dda-99d2-7d5340e50e70",
+      "name": "elvita",
+      "email": "diegivan2000@hotmail.com",
+      "passwordHash": "ee56f979aff62e558363149cc84ae46c:88ac2c1f353618cc5cb07bfc01a4ba6cf3b9587873fad375686efcfbc36080f574c59f2dca5a02d4c013015529596aa13d1972fe71f8b43dea3b0468c00a1b25",
+      "role": "resident",
+      "conjuntoId": "0df4b7b5-36e1-4b10-be73-22fb4314156c",
+      "avatarUrl": null,
+      "status": "active",
+      "acceptedTermsAt": "2026-04-08T03:52:34.093Z",
+      "createdAt": "2026-04-08T03:52:34.093Z"
+    },
+    {
+      "id": "70aee35f-9ced-4ba5-b38a-24bddc5e96fb",
+      "name": "juaelias",
+      "email": "diegitio12@hotmail.com",
+      "passwordHash": "df527ba1c9b373f479a4d67c267b8d30:238c39f34a127fdc33f1a519f08f00a5c56034d8b8bef72483881dcbb302715a98acc5e3650a402167eb34cda7802ba7719336e1fdc4c72ad8b8444ef3b2230b",
+      "role": "admin_conjunto",
+      "conjuntoId": "735a1c7f-d474-4093-a9e4-ef195426994a",
+      "avatarUrl": null,
+      "status": "active",
+      "acceptedTermsAt": "2026-04-08T04:09:01.343Z",
+      "createdAt": "2026-04-08T04:09:01.343Z"
+    },
+    {
+      "id": "531f5e3a-f68a-467e-966d-906f65deed0e",
+      "name": "anita",
+      "email": "anita12@hotmail.com",
+      "passwordHash": "97c13976e9600be312f5aaea7e50ff17:0f7c46225628f788d19b1ed5d4854a62eb9a60bd9852bd530dc1ca409b5c0c3b038a70ac4243237c6e9c89bd906a45954d84cd04aa73cc3dba9b0720ef117d69",
+      "role": "resident",
+      "conjuntoId": "735a1c7f-d474-4093-a9e4-ef195426994a",
+      "avatarUrl": null,
+      "status": "active",
+      "acceptedTermsAt": "2026-04-08T04:10:59.331Z",
+      "createdAt": "2026-04-08T04:10:59.331Z"
+    }
+  ],
+  "conjuntos": [
+    {
+      "id": "398cb854-9c67-4f9f-9bff-84c287eb3d10",
+      "name": "Vista Norte",
+      "slug": "vista-norte",
+      "location": "Quito",
+      "description": "Comunidad residencial con enfoque en comercio local.",
+      "logoUrl": "/images/owner-1.jpg",
+      "status": "approved",
+      "createdBy": "dcb631cf-c84a-4c77-87bf-828e4d9bd270",
+      "createdAt": "2026-04-06T04:04:27.323Z"
+    },
+    {
+      "id": "0df4b7b5-36e1-4b10-be73-22fb4314156c",
+      "name": "Conjunto 6 de junio",
+      "slug": "conjunto-6-de-junio",
+      "location": "Avenida abdon caldero",
+      "description": "Conjunto ubicado en la 6 de junio",
+      "logoUrl": "/uploads/1775619836968-1-e247dd93-0a21-4b2c-a9e2-ebfc9385a346.png",
+      "status": "approved",
+      "createdBy": "dcb631cf-c84a-4c77-87bf-828e4d9bd270",
+      "createdAt": "2026-04-08T03:51:29.695Z"
+    },
+    {
+      "id": "735a1c7f-d474-4093-a9e4-ef195426994a",
+      "name": "altavista2",
+      "slug": "altavista2",
+      "location": "conocoto",
+      "description": "conjutno de conocoto",
+      "logoUrl": "/uploads/1775621341321-1-d0d74388-78f8-477e-b4b4-faaf04255ad0.png",
+      "status": "approved",
+      "createdBy": "dcb631cf-c84a-4c77-87bf-828e4d9bd270",
+      "createdAt": "2026-04-08T04:09:52.858Z"
+    }
+  ],
+  "conjuntoRequests": [
+    {
+      "id": "7ff01c13-ee94-4da1-8d21-d2a0d6584516",
+      "nameRequested": "Conjunto 6 de junio",
+      "location": "Avenida abdon caldero",
+      "description": "Conjunto ubicado en la 6 de junio",
+      "logoUrl": "/uploads/1775619836968-1-e247dd93-0a21-4b2c-a9e2-ebfc9385a346.png",
+      "contactEmail": "diegivan17@hotmail.com",
+      "requestedByUserId": "67a721d8-36c5-4604-b7da-a80d17f2943c",
+      "status": "approved",
+      "reviewedBy": "dcb631cf-c84a-4c77-87bf-828e4d9bd270",
+      "createdAt": "2026-04-08T03:43:57.366Z",
+      "updatedAt": "2026-04-08T03:51:29.694Z"
+    },
+    {
+      "id": "f86c5a22-506c-4fb0-a199-e224ecf1a1a7",
+      "nameRequested": "altavista2",
+      "location": "conocoto",
+      "description": "conjutno de conocoto",
+      "logoUrl": "/uploads/1775621341321-1-d0d74388-78f8-477e-b4b4-faaf04255ad0.png",
+      "contactEmail": "diegitio12@hotmail.com",
+      "requestedByUserId": "70aee35f-9ced-4ba5-b38a-24bddc5e96fb",
+      "status": "approved",
+      "reviewedBy": "dcb631cf-c84a-4c77-87bf-828e4d9bd270",
+      "createdAt": "2026-04-08T04:09:01.343Z",
+      "updatedAt": "2026-04-08T04:09:52.857Z"
+    }
+  ],
+  "emprendimientos": [
+    {
+      "id": "7469dcd0-9e5c-4ba9-a053-83081b64ef46",
+      "conjuntoId": "398cb854-9c67-4f9f-9bff-84c287eb3d10",
+      "ownerId": "fec1064b-1488-4f58-9f9e-aaa9aab1fafd",
+      "name": "Huerto Vecinal",
+      "description": "Productos frescos y canastas semanales para vecinos.",
+      "logoUrl": "/images/market-woman.jpg",
+      "visibility": "public",
+      "status": "approved",
+      "createdAt": "2026-04-06T04:04:27.323Z",
+      "updatedAt": "2026-04-06T04:04:27.323Z",
+      "contactEmail": null,
+      "contactPhone": null
+    },
+    {
+      "id": "73e49ba5-34b6-4c6f-87d4-7b47a6be163d",
+      "conjuntoId": "0df4b7b5-36e1-4b10-be73-22fb4314156c",
+      "ownerId": "a0f98908-78ef-4dda-99d2-7d5340e50e70",
+      "name": "Alimnotad",
+      "description": "motas",
+      "logoUrl": "/uploads/1775620407071-1-2fe0e745-a9c7-4295-a925-c0950f3ee903.png",
+      "contactEmail": "diegivan2000@hotmail.com",
+      "contactPhone": "0969087163",
+      "visibility": "public",
+      "status": "approved",
+      "createdAt": "2026-04-08T03:53:27.101Z",
+      "updatedAt": "2026-04-08T04:00:01.645Z"
+    },
+    {
+      "id": "3981835a-9611-42bb-b9ef-77d121c3083f",
+      "conjuntoId": "735a1c7f-d474-4093-a9e4-ef195426994a",
+      "ownerId": "531f5e3a-f68a-467e-966d-906f65deed0e",
+      "name": "postres el huevio",
+      "description": "postres de huevo",
+      "logoUrl": "/uploads/1775621573870-1-216fb65e-344f-4065-abb6-14974e7717e7.png",
+      "contactEmail": "diegivan17@hotmail.com",
+      "contactPhone": "0969087163",
+      "visibility": "public",
+      "status": "approved",
+      "createdAt": "2026-04-08T04:12:53.895Z",
+      "updatedAt": "2026-04-08T04:13:43.139Z"
+    }
+  ],
+  "products": [
+    {
+      "id": "fbd71b51-5d45-4cae-b165-35b00d029ebf",
+      "emprendimientoId": "7469dcd0-9e5c-4ba9-a053-83081b64ef46",
+      "ownerId": "fec1064b-1488-4f58-9f9e-aaa9aab1fafd",
+      "name": "Canasta Organica Familiar",
+      "slug": "canasta-organica-familiar",
+      "description": "Incluye vegetales de temporada, frutas locales y entregas semanales.",
+      "price": 28.5,
+      "category": "Alimentos",
+      "stock": 24,
+      "imageUrls": [
+        "/images/hero-market.jpg"
+      ],
+      "status": "published",
+      "viewCount": 52,
+      "createdAt": "2026-04-06T04:04:27.323Z",
+      "updatedAt": "2026-04-13T04:02:08.783Z",
+      "specialPrice": 24.22
+    },
+    {
+      "id": "cceea311-1d05-46df-864c-3c3aef40c48c",
+      "emprendimientoId": "7469dcd0-9e5c-4ba9-a053-83081b64ef46",
+      "ownerId": "fec1064b-1488-4f58-9f9e-aaa9aab1fafd",
+      "name": "Pack de Hierbas Aromaticas",
+      "slug": "pack-hierbas-aromaticas",
+      "description": "Menta, albahaca y romero para cocina diaria.",
+      "price": 9.99,
+      "category": "Hogar",
+      "stock": 30,
+      "imageUrls": [
+        "/images/owner-3.jpg"
+      ],
+      "status": "published",
+      "viewCount": 33,
+      "createdAt": "2026-04-06T04:04:27.323Z",
+      "updatedAt": "2026-04-08T02:12:42.460Z",
+      "specialPrice": 8.49
+    }
+  ],
+  "reviews": [
+    {
+      "id": "a7c90bc3-006f-4adc-b407-34a114676c02",
+      "productId": "fbd71b51-5d45-4cae-b165-35b00d029ebf",
+      "authorId": "eeb37db7-6235-4c87-9654-03a30c0b07d4",
+      "rating": 5,
+      "comment": "Muy buena calidad y entrega puntual.",
+      "status": "visible",
+      "createdAt": "2026-04-06T04:04:27.323Z"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "fdeb6e55-b12f-4512-8fff-bc58858a76d8",
+      "userId": "531f5e3a-f68a-467e-966d-906f65deed0e",
+      "type": "emprendimiento_status_changed",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Tu emprendimiento \"postres el huevio\" fue aprobado."
+      },
+      "createdAt": "2026-04-08T04:13:43.139Z"
+    },
+    {
+      "id": "9c24fed8-9f38-40b1-9037-1b5949c8f41a",
+      "userId": "531f5e3a-f68a-467e-966d-906f65deed0e",
+      "type": "emprendimiento_created",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Tu emprendimiento fue creado y esta pendiente de revision."
+      },
+      "createdAt": "2026-04-08T04:12:53.895Z"
+    },
+    {
+      "id": "719ef5ff-1127-4a01-91d5-cf80eb57cf47",
+      "userId": "70aee35f-9ced-4ba5-b38a-24bddc5e96fb",
+      "type": "new_emprendimiento_pending",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Nuevo emprendimiento pendiente: postres el huevio"
+      },
+      "createdAt": "2026-04-08T04:12:53.895Z"
+    },
+    {
+      "id": "219a9a53-33b4-44df-92ad-9dfc6eba6795",
+      "userId": "531f5e3a-f68a-467e-966d-906f65deed0e",
+      "type": "welcome",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Bienvenido a URBIS. Ya puedes explorar y publicar en tu conjunto."
+      },
+      "createdAt": "2026-04-08T04:10:59.396Z"
+    },
+    {
+      "id": "3730a244-4f2f-4327-bb75-a341caeefc50",
+      "userId": "70aee35f-9ced-4ba5-b38a-24bddc5e96fb",
+      "type": "conjunto_request_approved",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Tu conjunto \"altavista2\" fue aprobado y ya puedes gestionarlo."
+      },
+      "createdAt": "2026-04-08T04:09:52.858Z"
+    },
+    {
+      "id": "0b513f8c-c569-4862-8357-549b74e07de9",
+      "userId": "70aee35f-9ced-4ba5-b38a-24bddc5e96fb",
+      "type": "conjunto_request_created",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Tu solicitud de conjunto fue enviada y esta pendiente de revision."
+      },
+      "createdAt": "2026-04-08T04:09:01.405Z"
+    },
+    {
+      "id": "d0aa9514-1136-442b-a68d-8f5fb90f0be4",
+      "userId": "dcb631cf-c84a-4c77-87bf-828e4d9bd270",
+      "type": "new_conjunto_request",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Nueva solicitud de conjunto: altavista2",
+        "requesterEmail": "diegitio12@hotmail.com"
+      },
+      "createdAt": "2026-04-08T04:09:01.405Z"
+    },
+    {
+      "id": "6363db6a-5f66-4dbc-a8c9-0aa0e707b71a",
+      "userId": "a0f98908-78ef-4dda-99d2-7d5340e50e70",
+      "type": "emprendimiento_status_changed",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Tu emprendimiento \"Alimnotad\" fue aprobado."
+      },
+      "createdAt": "2026-04-08T04:00:01.645Z"
+    },
+    {
+      "id": "a8381745-dc90-4fd4-bb31-26d3b4fd9eb8",
+      "userId": "a0f98908-78ef-4dda-99d2-7d5340e50e70",
+      "type": "emprendimiento_created",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Tu emprendimiento fue creado y esta pendiente de revision."
+      },
+      "createdAt": "2026-04-08T03:53:27.101Z"
+    },
+    {
+      "id": "1d6c03e6-f48e-4dc1-abcc-27da4402aad0",
+      "userId": "67a721d8-36c5-4604-b7da-a80d17f2943c",
+      "type": "new_emprendimiento_pending",
+      "channel": "in_app",
+      "status": "sent",
+      "metadata": {
+        "message": "Nuevo emprendimiento pendiente: Alimnotad"
+      },
+      "createdAt": "2026-04-08T03:53:27.101Z"
+    },
+    {
+      "id": "abf00bac-59ed-4078-96a7-42f1877b8801",
+      "userId": "a0f98908-78ef-4dda-99d2-7d5340e50e70",
+      "type": "welcome",
+      "channel": "in_app",
+      "status": "sent",
+      "metadata": {
+        "message": "Bienvenido a URBIS. Ya puedes explorar y publicar en tu conjunto."
+      },
+      "createdAt": "2026-04-08T03:52:34.152Z"
+    },
+    {
+      "id": "ea624fb4-9062-4af5-b1df-e8f5df7a4fc1",
+      "userId": "67a721d8-36c5-4604-b7da-a80d17f2943c",
+      "type": "conjunto_request_approved",
+      "channel": "in_app",
+      "status": "sent",
+      "metadata": {
+        "message": "Tu conjunto \"Conjunto 6 de junio\" fue aprobado y ya puedes gestionarlo."
+      },
+      "createdAt": "2026-04-08T03:51:29.695Z"
+    },
+    {
+      "id": "ef8ced52-e061-4087-a479-822254bcb0db",
+      "userId": "67a721d8-36c5-4604-b7da-a80d17f2943c",
+      "type": "conjunto_request_created",
+      "channel": "in_app",
+      "status": "sent",
+      "metadata": {
+        "message": "Tu solicitud de conjunto fue enviada y esta pendiente de revision."
+      },
+      "createdAt": "2026-04-08T03:43:57.467Z"
+    },
+    {
+      "id": "6d03bec4-e590-492b-b287-da3b6bb09064",
+      "userId": "dcb631cf-c84a-4c77-87bf-828e4d9bd270",
+      "type": "new_conjunto_request",
+      "channel": "in_app",
+      "status": "sent",
+      "metadata": {
+        "message": "Nueva solicitud de conjunto: Conjunto 6 de junio",
+        "requesterEmail": "diegivan17@hotmail.com"
+      },
+      "createdAt": "2026-04-08T03:43:57.467Z"
+    }
+  ]
+}
