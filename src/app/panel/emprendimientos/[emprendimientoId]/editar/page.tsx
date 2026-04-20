@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { uploadImageFiles } from "@/lib/upload-client";
+import { FullScreenSpinner } from "@/components/spinner";
 
 interface SessionUser {
   id: string;
@@ -118,11 +119,7 @@ export default function EditEmprendimientoPage() {
   }
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#070b10] text-zinc-100">
-        <p className="text-zinc-300">Cargando formulario...</p>
-      </main>
-    );
+    return <FullScreenSpinner label="Cargando formulario" />;
   }
 
   if (!user) {

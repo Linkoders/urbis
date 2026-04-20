@@ -3,6 +3,34 @@ import { getSessionUser, readDb } from "@/lib/urbis-store";
 
 export const runtime = "nodejs";
 
+function createProductsCountByEmprendimiento<T extends { emprendimientoId: string }>(
+  products: T[],
+): Map<string, number> {
+  const countMap = new Map<string, number>();
+  for (const product of products) {
+    countMap.set(
+      product.emprendimientoId,
+      (countMap.get(product.emprendimientoId) ?? 0) + 1,
+    );
+  }
+  return countMap;
+}
+
+function createByConjuntoId<T extends { conjuntoId: string }>(
+  emprendimientos: T[],
+): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+  for (const emprendimiento of emprendimientos) {
+    const bucket = grouped.get(emprendimiento.conjuntoId);
+    if (bucket) {
+      bucket.push(emprendimiento);
+    } else {
+      grouped.set(emprendimiento.conjuntoId, [emprendimiento]);
+    }
+  }
+  return grouped;
+}
+
 export async function GET(request: NextRequest) {
   const user = await getSessionUser(request);
   if (!user) {
@@ -12,6 +40,9 @@ export async function GET(request: NextRequest) {
   const db = await readDb();
   const conjuntoId = request.nextUrl.searchParams.get("conjuntoId");
   const emprendimientoId = request.nextUrl.searchParams.get("emprendimientoId");
+
+  const productsCountByEmprendimiento = createProductsCountByEmprendimiento(db.products);
+  const emprendimientosByConjunto = createByConjuntoId(db.emprendimientos);
 
   if (emprendimientoId) {
     const emprendimiento = db.emprendimientos.find((entry) => entry.id === emprendimientoId);
@@ -33,24 +64,24 @@ export async function GET(request: NextRequest) {
           typeof entry.specialPrice === "number" ? entry.specialPrice : null;
         const onSale = specialPrice !== null && specialPrice < entry.price;
 
-      return {
-        id: entry.id,
-        slug: entry.slug,
-        name: entry.name,
-        description: entry.description,
-        price: entry.price,
-        specialPrice,
-        finalPrice: onSale ? specialPrice : entry.price,
-        onSale,
-        category: entry.category,
-        stock: entry.stock,
-        image: entry.imageUrls[0] ?? "/images/hero-market.jpg",
-        imageUrls: entry.imageUrls,
-        imageCount: entry.imageUrls.length,
-        status: entry.status,
-        viewCount: entry.viewCount,
-        ownerId: entry.ownerId,
-      };
+        return {
+          id: entry.id,
+          slug: entry.slug,
+          name: entry.name,
+          description: entry.description,
+          price: entry.price,
+          specialPrice,
+          finalPrice: onSale ? specialPrice : entry.price,
+          onSale,
+          category: entry.category,
+          stock: entry.stock,
+          image: entry.imageUrls[0] ?? "/images/hero-market.jpg",
+          imageUrls: entry.imageUrls,
+          imageCount: entry.imageUrls.length,
+          status: entry.status,
+          viewCount: entry.viewCount,
+          ownerId: entry.ownerId,
+        };
       });
 
     const conjunto = db.conjuntos.find((entry) => entry.id === emprendimiento.conjuntoId);
@@ -100,26 +131,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado." }, { status: 403 });
     }
 
-    const emprendimientos = db.emprendimientos
-      .filter((entry) => entry.conjuntoId === conjunto.id)
-      .map((entry) => {
-        const productsCount = db.products.filter(
-          (product) => product.emprendimientoId === entry.id,
-        ).length;
-
-        return {
-          id: entry.id,
-          name: entry.name,
-          description: entry.description,
-          logoUrl: entry.logoUrl,
-          visibility: entry.visibility,
-          status: entry.status,
-          ownerId: entry.ownerId,
-          contactEmail: entry.contactEmail,
-          contactPhone: entry.contactPhone,
-          productsCount,
-        };
-      });
+    const emprendimientos = (emprendimientosByConjunto.get(conjunto.id) ?? []).map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      description: entry.description,
+      logoUrl: entry.logoUrl,
+      visibility: entry.visibility,
+      status: entry.status,
+      ownerId: entry.ownerId,
+      contactEmail: entry.contactEmail,
+      contactPhone: entry.contactPhone,
+      productsCount: productsCountByEmprendimiento.get(entry.id) ?? 0,
+    }));
 
     return NextResponse.json({
       user: {
@@ -141,14 +164,25 @@ export async function GET(request: NextRequest) {
   }
 
   if (user.role === "superadmin") {
+    const pendingConjuntoRequests = db.conjuntoRequests
+      .filter((entry) => entry.status === "pending")
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((entry) => ({
+        id: entry.id,
+        nameRequested: entry.nameRequested,
+        location: entry.location,
+        description: entry.description,
+        logoUrl: entry.logoUrl,
+        contactEmail: entry.contactEmail,
+        createdAt: entry.createdAt,
+      }));
+
     const conjuntos = db.conjuntos.map((entry) => {
-      const emprendimientos = db.emprendimientos.filter(
-        (emprendimiento) => emprendimiento.conjuntoId === entry.id,
-      );
-      const emprendimientoIds = new Set(emprendimientos.map((emprendimiento) => emprendimiento.id));
-      const productsCount = db.products.filter((product) =>
-        emprendimientoIds.has(product.emprendimientoId),
-      ).length;
+      const emprendimientos = emprendimientosByConjunto.get(entry.id) ?? [];
+      let productsCount = 0;
+      for (const emprendimiento of emprendimientos) {
+        productsCount += productsCountByEmprendimiento.get(emprendimiento.id) ?? 0;
+      }
 
       return {
         id: entry.id,
@@ -170,30 +204,25 @@ export async function GET(request: NextRequest) {
         conjuntoId: user.conjuntoId,
       },
       conjuntos,
+      pendingConjuntoRequests,
     });
   }
 
   if (user.role === "admin_conjunto") {
-    const emprendimientos = db.emprendimientos
-      .filter((entry) => entry.conjuntoId === user.conjuntoId)
-      .map((entry) => {
-        const productsCount = db.products.filter(
-          (product) => product.emprendimientoId === entry.id,
-        ).length;
-
-        return {
-          id: entry.id,
-          name: entry.name,
-          description: entry.description,
-          logoUrl: entry.logoUrl,
-          visibility: entry.visibility,
-          status: entry.status,
-          ownerId: entry.ownerId,
-          contactEmail: entry.contactEmail,
-          contactPhone: entry.contactPhone,
-          productsCount,
-        };
-      });
+    const emprendimientos = (emprendimientosByConjunto.get(user.conjuntoId ?? "") ?? []).map(
+      (entry) => ({
+        id: entry.id,
+        name: entry.name,
+        description: entry.description,
+        logoUrl: entry.logoUrl,
+        visibility: entry.visibility,
+        status: entry.status,
+        ownerId: entry.ownerId,
+        contactEmail: entry.contactEmail,
+        contactPhone: entry.contactPhone,
+        productsCount: productsCountByEmprendimiento.get(entry.id) ?? 0,
+      }),
+    );
 
     return NextResponse.json({
       user: {
@@ -207,24 +236,18 @@ export async function GET(request: NextRequest) {
 
   const emprendimientos = db.emprendimientos
     .filter((entry) => entry.ownerId === user.id)
-    .map((entry) => {
-      const productsCount = db.products.filter(
-        (product) => product.emprendimientoId === entry.id,
-      ).length;
-
-      return {
-        id: entry.id,
-        name: entry.name,
-        description: entry.description,
-        logoUrl: entry.logoUrl,
-        visibility: entry.visibility,
-        status: entry.status,
-        ownerId: entry.ownerId,
-        contactEmail: entry.contactEmail,
-        contactPhone: entry.contactPhone,
-        productsCount,
-      };
-    });
+    .map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      description: entry.description,
+      logoUrl: entry.logoUrl,
+      visibility: entry.visibility,
+      status: entry.status,
+      ownerId: entry.ownerId,
+      contactEmail: entry.contactEmail,
+      contactPhone: entry.contactPhone,
+      productsCount: productsCountByEmprendimiento.get(entry.id) ?? 0,
+    }));
 
   return NextResponse.json({
     user: {

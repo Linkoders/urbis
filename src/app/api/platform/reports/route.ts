@@ -58,6 +58,26 @@ function toPercentDelta(base: number, current: number): number {
   return Number((((current - base) / base) * 100).toFixed(1));
 }
 
+function normalizeSuggestionText(input: string): string {
+  return input
+    .replace(/\s+/g, " ")
+    .replace(/\bmais\b/gi, "más")
+    .replace(/\bvoce\b/gi, "tú")
+    .replace(/\bpatitias\b/gi, "patitas")
+    .trim();
+}
+
+function truncateWithoutCut(input: string, maxLength: number): string {
+  if (input.length <= maxLength) {
+    return input;
+  }
+
+  const slice = input.slice(0, maxLength);
+  const lastSpace = slice.lastIndexOf(" ");
+  const safeSlice = lastSpace > 0 ? slice.slice(0, lastSpace) : slice;
+  return safeSlice.trimEnd();
+}
+
 async function buildGeminiSuggestions(drafts: DraftComparison[]): Promise<Map<string, string>> {
   if (!GEMINI_API_KEY || drafts.length === 0) {
     return new Map();
@@ -82,12 +102,14 @@ async function buildGeminiSuggestions(drafts: DraftComparison[]): Promise<Map<st
 
   const prompt = [
     "Eres asesor comercial senior para pequeños emprendimientos locales.",
+    "Escribe exclusivamente en español neutro (sin portugués).",
     "Analiza cada producto con enfoque en conversión, precio y reputación.",
     "Devuelve SOLO JSON válido como array.",
     "Cada elemento debe tener: productId y suggestion.",
-    "suggestion debe estar en español, máximo 220 caracteres.",
+    "suggestion debe estar en español, máximo 420 caracteres.",
     "La sugerencia debe incluir: 1 acción concreta + 1 razón basada en datos + 1 meta de corto plazo.",
     "No uses texto genérico. No repitas frases entre productos.",
+    "Usa ortografía correcta con tildes y ñ cuando corresponda.",
     "No incluyas markdown, cabeceras ni explicaciones fuera del JSON.",
     `Datos: ${JSON.stringify(input)}`,
   ].join("\n");
@@ -143,9 +165,9 @@ async function buildGeminiSuggestions(drafts: DraftComparison[]): Promise<Map<st
 
     for (const item of items) {
       const productId = String(item.productId ?? "").trim();
-      const suggestion = String(item.suggestion ?? "").trim();
+      const suggestion = normalizeSuggestionText(String(item.suggestion ?? "").trim());
       if (!productId || !suggestion) continue;
-      map.set(productId, suggestion.slice(0, 220));
+      map.set(productId, truncateWithoutCut(suggestion, 420));
     }
 
     return map;

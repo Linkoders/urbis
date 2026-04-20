@@ -3,12 +3,15 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
+import { getBlobAccessMode, getBlobReadWriteToken, toClientAssetUrl } from "@/lib/blob-utils";
 
 export const runtime = "nodejs";
 
 const UPLOADS_DIR = join(process.cwd(), "public", "uploads");
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
-const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN?.trim() || "";
+const MAX_FILES_PER_UPLOAD = 5;
+const BLOB_TOKEN = getBlobReadWriteToken();
+const BLOB_ACCESS = getBlobAccessMode();
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
@@ -41,6 +44,12 @@ export async function POST(request: Request) {
 
     if (files.length === 0) {
       return NextResponse.json({ error: "Debes subir al menos una imagen." }, { status: 400 });
+    }
+    if (files.length > MAX_FILES_PER_UPLOAD) {
+      return NextResponse.json(
+        { error: `Puedes subir hasta ${MAX_FILES_PER_UPLOAD} imágenes por producto.` },
+        { status: 400 },
+      );
     }
 
     if (process.env.VERCEL && !BLOB_TOKEN) {
@@ -77,11 +86,11 @@ export async function POST(request: Request) {
 
       if (useBlob) {
         const blob = await put(`urbis/${fileName}`, file, {
-          access: "public",
+          access: BLOB_ACCESS,
           token: BLOB_TOKEN,
           addRandomSuffix: false,
         });
-        urls.push(blob.url);
+        urls.push(toClientAssetUrl(blob.url));
         continue;
       }
 
@@ -92,7 +101,23 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ ok: true, urls });
-  } catch {
-    return NextResponse.json({ error: "No se pudieron subir las imágenes." }, { status: 500 });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "Error desconocido.";
+    console.error("[/api/uploads] Error al subir imágenes:", error);
+
+    const privateStoreAccessMismatch =
+      detail.includes("Cannot use public access on a private store") &&
+      BLOB_ACCESS === "public";
+
+    return NextResponse.json(
+      {
+        error: privateStoreAccessMismatch
+          ? "El Blob Store es privado y el API está en modo público. Configura BLOB_ACCESS=private o cambia el store a Public en Vercel."
+          : process.env.NODE_ENV === "development"
+            ? `No se pudieron subir las imágenes. ${detail}`
+            : "No se pudieron subir las imágenes.",
+      },
+      { status: 500 },
+    );
   }
 }

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FullScreenSpinner } from "@/components/spinner";
 
 interface ProductDetail {
   id: string;
@@ -134,11 +135,7 @@ export default function ProductDetailPage() {
   }
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#070b10] text-zinc-100">
-        <p className="text-zinc-300">Cargando producto...</p>
-      </main>
-    );
+    return <FullScreenSpinner label="Cargando producto" />;
   }
 
   if (error || !product) {

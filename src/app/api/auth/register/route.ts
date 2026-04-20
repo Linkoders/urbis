@@ -7,9 +7,24 @@ import {
   readDb,
   writeDb,
 } from "@/lib/urbis-store";
+import { prisma } from "@/lib/prisma";
+import { isBlobStorageUrl } from "@/lib/blob-utils";
 import type { UserRole } from "@/lib/urbis-types";
 
 export const runtime = "nodejs";
+
+function isValidAvatarUrl(value: string): boolean {
+  if (!value) return false;
+
+  if (value.startsWith("/uploads/")) {
+    return true;
+  }
+  if (value.startsWith("/api/blob?url=")) {
+    return true;
+  }
+
+  return isBlobStorageUrl(value);
+}
 
 export async function POST(request: Request) {
   try {
@@ -25,6 +40,8 @@ export async function POST(request: Request) {
       requestedConjuntoLocation?: string;
       requestedConjuntoDescription?: string;
       requestedConjuntoLogoUrl?: string;
+      isEntrepreneur?: boolean;
+      isIndependent?: boolean;
     };
 
     const name = payload.name?.trim();
@@ -38,6 +55,7 @@ export async function POST(request: Request) {
     const requestedConjuntoLocation = String(payload.requestedConjuntoLocation ?? "").trim();
     const requestedConjuntoDescription = String(payload.requestedConjuntoDescription ?? "").trim();
     const requestedConjuntoLogoUrl = String(payload.requestedConjuntoLogoUrl ?? "").trim();
+    const isEntrepreneur = payload.isEntrepreneur === true || payload.isIndependent === true;
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: "Nombre, email y contraseña son obligatorios." }, { status: 400 });
@@ -47,9 +65,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "La contraseña debe tener al menos 6 caracteres." }, { status: 400 });
     }
 
-    if (!avatarUrl || !avatarUrl.startsWith("/uploads/")) {
+    if (!isValidAvatarUrl(avatarUrl)) {
       return NextResponse.json(
-        { error: "Debes subir una foto de perfil (rostro) válida." },
+        { error: "Debes subir una foto de perfil válida (local o Vercel Blob)." },
         { status: 400 },
       );
     }
@@ -69,7 +87,7 @@ export async function POST(request: Request) {
 
     const conjunto = db.conjuntos.find((entry) => entry.slug === conjuntoSlug && entry.status === "approved");
 
-    if (role === "resident" && !conjunto) {
+    if (role === "resident" && !conjunto && !isEntrepreneur) {
       return NextResponse.json(
         { error: "Debes seleccionar un conjunto válido para registrarte." },
         { status: 400 },
@@ -143,6 +161,35 @@ export async function POST(request: Request) {
     }
 
     await writeDb(db);
+
+    await prisma.notificationPreferenceRecord.upsert({
+      where: { userId },
+      update: {},
+      create: {
+        userId,
+        wantsProductNotifications: false,
+        wantsAnnouncementNotifications: true,
+        wantsPersonalizedRecommendations: true,
+        wantsEmail: false,
+        wantsPush: false,
+      },
+    });
+
+    if (isEntrepreneur || role === "admin_conjunto") {
+      await prisma.entrepreneurProfileRecord.upsert({
+        where: { userId },
+        update: {
+          isIndependent: role === "resident" && !conjunto,
+          defaultConjuntoId: conjunto?.id ?? null,
+        },
+        create: {
+          userId,
+          isIndependent: role === "resident" && !conjunto,
+          defaultConjuntoId: conjunto?.id ?? null,
+          approvalStatus: "active",
+        },
+      });
+    }
 
     const response = NextResponse.json({
       ok: true,

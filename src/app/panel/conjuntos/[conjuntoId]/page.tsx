@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { FullScreenSpinner } from "@/components/spinner";
 
 interface SessionUser {
   id: string;
@@ -158,11 +159,7 @@ export default function ConjuntoPanelPage() {
   }
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#070b10] text-zinc-100">
-        <p className="text-zinc-300">Cargando emprendimientos...</p>
-      </main>
-    );
+    return <FullScreenSpinner label="Cargando emprendimientos" />;
   }
 
   if (!conjunto || !user) {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { FullScreenSpinner } from "@/components/spinner";
 
 interface SessionUser {
   id: string;
@@ -87,28 +88,15 @@ export default function PanelPage() {
       user: SessionUser;
       conjuntos?: ConjuntoCard[];
       emprendimientos?: EmprendimientoCard[];
+      pendingConjuntoRequests?: PendingConjuntoRequest[];
     };
 
     setUser(data.user);
     setConjuntos(data.conjuntos ?? []);
     setEmprendimientos(data.emprendimientos ?? []);
-
-    if (data.user.role === "superadmin") {
-      const dashboardResponse = await fetch("/api/platform/dashboard", { cache: "no-store" });
-      if (dashboardResponse.ok) {
-        const dashboardData = (await dashboardResponse.json()) as {
-          roleData?: {
-            pendingConjuntoRequests?: PendingConjuntoRequest[];
-          };
-        };
-
-        setPendingConjuntoRequests(dashboardData.roleData?.pendingConjuntoRequests ?? []);
-      } else {
-        setPendingConjuntoRequests([]);
-      }
-    } else {
-      setPendingConjuntoRequests([]);
-    }
+    setPendingConjuntoRequests(
+      data.user.role === "superadmin" ? data.pendingConjuntoRequests ?? [] : [],
+    );
 
     setLoading(false);
   }
@@ -189,11 +177,7 @@ export default function PanelPage() {
   }
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#070b10] text-zinc-100">
-        <p className="text-zinc-300">Cargando panel...</p>
-      </main>
-    );
+    return <FullScreenSpinner label="Cargando panel" />;
   }
 
   if (!user) {

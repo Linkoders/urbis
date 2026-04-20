@@ -1,4 +1,4 @@
-export async function uploadImageFiles(files: File[]): Promise<string[]> {
+﻿export async function uploadImageFiles(files: File[]): Promise<string[]> {
   if (files.length === 0) {
     return [];
   }
@@ -19,8 +19,9 @@ export async function uploadImageFiles(files: File[]): Promise<string[]> {
   };
 
   if (!response.ok) {
-    throw new Error(data.error ?? "No se pudieron subir las imágenes.");
+    throw new Error(data.error ?? "No se pudieron subir las imagenes.");
   }
 
   return data.urls ?? [];
 }
+

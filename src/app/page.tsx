@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
@@ -11,7 +12,7 @@ interface LandingStats {
   conjuntos: number;
   emprendimientos: number;
   productos: number;
-  reseÃ±as: number;
+  resenas: number;
   visitas: number;
 }
 
@@ -58,7 +59,7 @@ const initialStats: LandingStats = {
   conjuntos: 0,
   emprendimientos: 0,
   productos: 0,
-  reseÃ±as: 0,
+  resenas: 0,
   visitas: 0,
 };
 
@@ -66,17 +67,17 @@ const benefits = [
   {
     title: "Mayor descubrimiento local",
     description:
-      "Tus productos aparecen en un listado filtrable por categorÃ­a, precio y popularidad dentro de tu comunidad.",
+      "Tus productos aparecen en un listado filtrable por categoría, precio y popularidad dentro de tu comunidad.",
   },
   {
     title: "Confianza con moderacion",
     description:
-      "Cada emprendimiento pasa por revisiÃ³n y aprobaciÃ³n, mejorando la calidad del contenido y la seguridad para vecinos.",
+      "Cada emprendimiento pasa por revisión y aprobación, mejorando la calidad del contenido y la seguridad para vecinos.",
   },
   {
     title: "Control de visibilidad",
     description:
-      "Define si tu emprendimiento es solo interno del conjunto o visible al pÃºblico para escalar alcance.",
+      "Define si tu emprendimiento es solo interno del conjunto o visible al público para escalar alcance.",
   },
   {
     title: "Operacion simple",
@@ -84,6 +85,36 @@ const benefits = [
       "Paneles simples para publicar, aprobar, pausar y analizar actividad sin depender de procesos manuales.",
   },
 ];
+
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://urbis.linekoders.com").replace(/\/$/, "");
+
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "URBIS",
+  url: siteUrl,
+  logo: `${siteUrl}/images/urbis-mark.svg`,
+  sameAs: ["https://linekoders.com/"],
+  description:
+    "Proyecto social gratuito de Linekoders para impulsar el comercio local en comunidades.",
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "URBIS",
+  url: siteUrl,
+  inLanguage: "es-EC",
+  publisher: {
+    "@type": "Organization",
+    name: "Linekoders",
+  },
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${siteUrl}/productos?search={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
+};
 
 export default function Home() {
   const rootRef = useRef<HTMLElement | null>(null);
@@ -124,7 +155,7 @@ export default function Home() {
           conjuntos: incomingStats.conjuntos ?? 0,
           emprendimientos: incomingStats.emprendimientos ?? 0,
           productos: incomingStats.productos ?? 0,
-          reseÃ±as: incomingStats.reseÃ±as ?? incomingStats.resenas ?? 0,
+          resenas: incomingStats.resenas ?? incomingStats.resenas ?? 0,
           visitas: incomingStats.visitas ?? 0,
         });
         setConjuntos((statsData.conjuntos ?? []).slice(0, 6));
@@ -282,7 +313,7 @@ export default function Home() {
     stats.conjuntos,
     stats.emprendimientos,
     stats.productos,
-    stats.reseÃ±as,
+    stats.resenas,
     stats.visitas,
     conjuntos,
   ]);
@@ -332,7 +363,18 @@ export default function Home() {
   }
 
   return (
-    <main ref={rootRef} className="bg-[#080b0f] text-zinc-100">
+    <>
+      <Script
+        id="urbis-organization-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <Script
+        id="urbis-website-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
+      <main ref={rootRef} className="bg-[#080b0f] text-zinc-100">
       <section className="mx-auto grid min-h-screen max-w-[1320px] grid-cols-1 gap-12 px-6 pb-16 pt-32 lg:grid-cols-[1.02fr_1fr] lg:px-12">
         <div className="flex flex-col justify-center" data-hero>
           <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
@@ -342,7 +384,7 @@ export default function Home() {
             Busca y compra en tu comunidad.
           </h1>
           <p className="mt-6 max-w-xl text-xl leading-relaxed text-zinc-300">
-            Escribe el nombre del producto, categorÃ­a o emprendimiento para
+            Escribe el nombre del producto, categoría o emprendimiento para
             encontrar opciones locales al instante.
           </p>
 
@@ -352,7 +394,7 @@ export default function Home() {
                 suppressHydrationWarning
                 value={heroQuery}
                 onChange={(event) => setHeroQuery(event.target.value)}
-                placeholder="Buscar: canasta, huerto, panaderia..."
+                placeholder="Buscar: canasta, huerto, panadería..."
                 className="w-full bg-transparent px-3 py-3 text-sm text-white outline-none"
               />
               <button
@@ -454,7 +496,7 @@ export default function Home() {
         <section className="bg-[#0b1118] px-6 py-24 lg:px-12">
           <div className="mx-auto max-w-[1320px]">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300" data-reveal>
-              QuÃ© es URBIS
+              Qué es URBIS
             </p>
             <h2
               className="mt-3 max-w-5xl font-[family-name:var(--font-display)] text-5xl leading-tight font-semibold text-white sm:text-6xl"
@@ -463,20 +505,20 @@ export default function Home() {
               Una forma simple de comprar y vender entre vecinos.
             </h2>
             <p className="mt-5 max-w-3xl text-lg leading-relaxed text-zinc-300" data-reveal>
-              URBIS ayuda a que los productos de tu urbanizaciÃ³n se vean mejor,
-              lleguen a mÃ¡s personas y generen confianza entre quienes viven cerca.
+              URBIS ayuda a que los productos de tu urbanización se vean mejor,
+              lleguen a más personas y generen confianza entre quienes viven cerca.
             </p>
             <div className="mt-10 grid gap-6 md:grid-cols-3">
               <article className="border border-white/10 bg-black/35 p-6" data-reveal>
                 <p className="text-xs uppercase tracking-[0.14em] text-zinc-400">Beneficio 01</p>
-                <h3 className="mt-2 text-2xl font-semibold text-white">Compra mÃ¡s cerca</h3>
+                <h3 className="mt-2 text-2xl font-semibold text-white">Compra más cerca</h3>
                 <p className="mt-3 text-zinc-300">
-                  Encuentra productos Ãºtiles de personas que viven en tu misma zona.
+                  Encuentra productos útiles de personas que viven en tu misma zona.
                 </p>
               </article>
               <article className="border border-white/10 bg-black/35 p-6" data-reveal>
                 <p className="text-xs uppercase tracking-[0.14em] text-zinc-400">Beneficio 02</p>
-                <h3 className="mt-2 text-2xl font-semibold text-white">MÃ¡s confianza al elegir</h3>
+                <h3 className="mt-2 text-2xl font-semibold text-white">Más confianza al elegir</h3>
                 <p className="mt-3 text-zinc-300">
                   Revisa fotos, precios, opiniones y contacto para decidir mejor.
                 </p>
@@ -485,7 +527,7 @@ export default function Home() {
                 <p className="text-xs uppercase tracking-[0.14em] text-zinc-400">Beneficio 03</p>
                 <h3 className="mt-2 text-2xl font-semibold text-white">Haz crecer tu emprendimiento</h3>
                 <p className="mt-3 text-zinc-300">
-                  Publica tus productos y elige si quieres vender solo dentro de tu comunidad o tambiÃ©n al pÃºblico.
+                  Publica tus productos y elige si quieres vender solo dentro de tu comunidad o también al público.
                 </p>
               </article>
             </div>
@@ -502,13 +544,13 @@ export default function Home() {
             className="text-xs font-semibold uppercase tracking-[0.2em] text-[#2d6b4d]"
             data-reveal
           >
-            Como aprovechas URBIS
+            Cómo aprovechas URBIS
           </p>
           <h2
             className="mt-3 max-w-4xl font-[family-name:var(--font-display)] text-5xl leading-tight font-semibold sm:text-6xl"
             data-reveal
           >
-            Beneficios claros para vecinos, familias y pequeÃ±os negocios.
+            Beneficios claros para vecinos, familias y pequeños negocios.
           </h2>
 
           <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -536,8 +578,8 @@ export default function Home() {
               Comunidades que ya comercian dentro de URBIS.
             </h3>
             <p className="mt-6 text-lg leading-relaxed text-zinc-300">
-              Monitorea productos, reseÃ±as y visitas para entender quÃ© conjuntos
-              estÃ¡n acelerando su economÃ­a local.
+              Monitorea productos, resenas y visitas para entender qué conjuntos
+              están acelerando su economía local.
             </p>
             <div className="mt-8 grid grid-cols-2 gap-4">
               <div className="border border-white/20 bg-white/5 p-4">
@@ -612,7 +654,7 @@ export default function Home() {
                       <span data-count={conjunto.products}>{conjunto.products}</span> productos
                     </p>
                     <p className="text-sm text-zinc-400">
-                      <span data-count={conjunto.reviews}>{conjunto.reviews}</span> reseÃ±as
+                      <span data-count={conjunto.reviews}>{conjunto.reviews}</span> resenas
                     </p>
                   </Link>
                 ))}
@@ -635,14 +677,14 @@ export default function Home() {
             href="/productos?onSale=1"
             className="mt-6 inline-block border border-[#9a3412] px-5 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#9a3412] hover:bg-[#9a3412] hover:text-white"
           >
-            Ver mÃ¡s
+            Ver más
           </Link>
         </div>
 
         <div className="mx-auto mt-10 grid max-w-[1320px] gap-6 md:grid-cols-2 lg:grid-cols-4">
           {offers.length === 0 ? (
             <article className="border border-zinc-300 bg-white p-6" data-reveal>
-              <h4 className="text-2xl font-semibold">AÃºn sin ofertas activas</h4>
+              <h4 className="text-2xl font-semibold">Aún sin ofertas activas</h4>
               <p className="mt-3 text-zinc-700">Publica productos con precio especial desde gestionar emprendimientos.</p>
             </article>
           ) : (
@@ -654,7 +696,13 @@ export default function Home() {
                 data-reveal
               >
                 <div className="relative h-52">
-                  <Image src={offer.image} alt={offer.name} fill className="object-cover" />
+                  <Image
+                    src={offer.image}
+                    alt={offer.name}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                    className="object-cover"
+                  />
                   <div className="absolute left-3 top-3 bg-[#f59e0b] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-black">
                     -{offer.discountPercent}%
                   </div>
@@ -680,17 +728,17 @@ export default function Home() {
       <section id="solicitud" className="bg-zinc-100 px-6 py-28 text-[#0a0f14] lg:px-12">
         <div className="mx-auto max-w-[1080px] border border-zinc-300/80 bg-white p-10 text-center shadow-[0_20px_50px_rgba(11,22,53,0.07)] sm:p-14">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#2d6b4d]" data-reveal>
-            Unete a URBIS
+            Únete a URBIS
           </p>
           <h3
             className="mt-4 font-[family-name:var(--font-display)] text-5xl font-semibold leading-tight sm:text-6xl"
             data-reveal
           >
-            Â¿Quieres registrarte?
+            ¿Quieres registrarte?
           </h3>
           <p className="mx-auto mt-7 max-w-3xl text-xl leading-relaxed text-zinc-700" data-reveal>
               Crea tu cuenta como residente o como encargado de un conjunto.
-            Desde ahÃ­ podrÃ¡s cargar los datos de tu comunidad, subir tu logo y
+            Desde ahí podrás cargar los datos de tu comunidad, subir tu logo y
             publicar tus productos con fotos reales desde tus archivos.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4" data-reveal>
@@ -782,6 +830,7 @@ export default function Home() {
             <form onSubmit={submitFeedback} className="mt-6 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <input
+                  suppressHydrationWarning
                   value={feedbackName}
                   onChange={(event) => setFeedbackName(event.target.value)}
                   placeholder="Tu nombre"
@@ -790,6 +839,7 @@ export default function Home() {
                 />
                 <input
                   type="email"
+                  suppressHydrationWarning
                   value={feedbackEmail}
                   onChange={(event) => setFeedbackEmail(event.target.value)}
                   placeholder="Tu email"
@@ -799,6 +849,7 @@ export default function Home() {
               </div>
 
               <select
+                suppressHydrationWarning
                 value={feedbackCategory}
                 onChange={(event) => setFeedbackCategory(event.target.value === "apoyo" ? "apoyo" : "mejora")}
                 className="w-full border border-zinc-300 px-4 py-3 outline-none transition focus:border-[#2d6b4d]"
@@ -808,6 +859,7 @@ export default function Home() {
               </select>
 
               <textarea
+                suppressHydrationWarning
                 value={feedbackMessage}
                 onChange={(event) => setFeedbackMessage(event.target.value)}
                 placeholder="Escribe tu idea o propuesta..."
@@ -821,6 +873,7 @@ export default function Home() {
 
               <button
                 type="submit"
+                suppressHydrationWarning
                 disabled={feedbackLoading}
                 className="w-full bg-[#0b1635] px-6 py-4 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-[#15285a] disabled:opacity-70"
               >
@@ -860,7 +913,7 @@ export default function Home() {
               </li>
               <li>
                 <Link href="/terminos-y-condiciones" className="hover:text-white">
-                  TÃ©rminos y condiciones
+                  Términos y condiciones
                 </Link>
               </li>
               <li>
@@ -883,7 +936,7 @@ export default function Home() {
             <ul className="mt-3 space-y-2 text-sm">
               <li>Conjuntos registrados: {stats.conjuntos}</li>
               <li>Productos activos: {stats.productos}</li>
-              <li>ReseÃ±as pÃºblicas: {stats.reseÃ±as}</li>
+              <li>Reseñas públicas: {stats.resenas}</li>
               <li>Visitas acumuladas: {stats.visitas}</li>
             </ul>
           </div>
@@ -912,7 +965,9 @@ export default function Home() {
           URBIS - Iniciativa social gratuita de Linekoders
         </div>
       </footer>
-    </main>
+      </main>
+    </>
   );
 }
+
 

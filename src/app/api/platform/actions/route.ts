@@ -8,9 +8,12 @@ import {
   slugify,
   writeDb,
 } from "@/lib/urbis-store";
+import { sendEmailNotification } from "@/lib/email-service";
+import { prisma } from "@/lib/prisma";
 import type { ProductStatus, Visibility } from "@/lib/urbis-types";
 
 export const runtime = "nodejs";
+const MAX_PRODUCT_IMAGES = 5;
 
 function uniqueSlug(base: string, existing: Set<string>): string {
   let slug = base;
@@ -69,6 +72,130 @@ function notifyRoleUsers(
   const users = db.users.filter((entry) => entry.role === role && entry.status === "active");
   for (const entry of users) {
     pushInAppNotification(db, entry.id, type, message, metadata);
+  }
+}
+
+function ensureIndependentConjunto(
+  db: Awaited<ReturnType<typeof readDb>>,
+  actorUserId: string,
+): string {
+  const existing = db.conjuntos.find((entry) => entry.slug === "emprendedores-independientes");
+  if (existing) {
+    return existing.id;
+  }
+
+  const superadmin =
+    db.users.find((entry) => entry.role === "superadmin" && entry.status === "active") ?? null;
+  const now = new Date().toISOString();
+  const id = createId();
+  db.conjuntos.push({
+    id,
+    name: "Emprendedores Independientes",
+    slug: "emprendedores-independientes",
+    location: "Nacional",
+    description:
+      "Espacio para emprendedores que operan sin asociación inicial a un conjunto específico.",
+    logoUrl: "/images/owner-1.jpg",
+    status: "approved",
+    createdBy: superadmin?.id ?? actorUserId,
+    createdAt: now,
+  });
+
+  return id;
+}
+
+async function notifyFollowersAboutNewProduct(params: {
+  db: Awaited<ReturnType<typeof readDb>>;
+  emprendimiento: { id: string; name: string };
+  product: { id: string; name: string; slug: string; price: number };
+  ownerId: string;
+}) {
+  const follows = await prisma.emprendimientoFollowRecord.findMany({
+    where: {
+      emprendimientoId: params.emprendimiento.id,
+      notifyNewProducts: true,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          status: true,
+        },
+      },
+    },
+  });
+
+  if (follows.length === 0) {
+    return;
+  }
+
+  const followerIds = follows.map((entry) => entry.userId);
+  const preferences = await prisma.notificationPreferenceRecord.findMany({
+    where: {
+      userId: { in: followerIds },
+    },
+    select: {
+      userId: true,
+      wantsProductNotifications: true,
+      wantsEmail: true,
+    },
+  });
+  const preferenceByUserId = new Map(preferences.map((entry) => [entry.userId, entry]));
+
+  for (const follow of follows) {
+    const follower = follow.user;
+    if (!follower || follower.status !== "active" || follower.id === params.ownerId) {
+      continue;
+    }
+
+    const preference = preferenceByUserId.get(follower.id);
+    if (!preference?.wantsProductNotifications) {
+      continue;
+    }
+
+    pushInAppNotification(
+      params.db,
+      follower.id,
+      "new_product_from_followed_emprendimiento",
+      `${params.emprendimiento.name} publicó un nuevo producto: ${params.product.name}.`,
+      {
+        productId: params.product.id,
+        productSlug: params.product.slug,
+        emprendimientoId: params.emprendimiento.id,
+      },
+    );
+
+    if (preference.wantsEmail) {
+      const subject = `Nuevo producto en ${params.emprendimiento.name}`;
+      const productUrl = `/productos/${params.product.slug}`;
+      const emailResult = await sendEmailNotification({
+        to: follower.email,
+        subject,
+        html: `<p>Hola ${follower.name},</p>
+<p><strong>${params.emprendimiento.name}</strong> publicó un nuevo producto:</p>
+<p><strong>${params.product.name}</strong> - $${params.product.price.toFixed(2)}</p>
+<p>Revisa el producto aquí: ${productUrl}</p>`,
+        text: `Hola ${follower.name}, ${params.emprendimiento.name} publicó ${params.product.name}. Ver: ${productUrl}`,
+      });
+
+      params.db.notifications.unshift({
+        id: createId(),
+        userId: follower.id,
+        type: "new_product_email",
+        channel: "email",
+        status: emailResult.ok ? "sent" : "failed",
+        metadata: {
+          message: subject,
+          emprendimientoId: params.emprendimiento.id,
+          productId: params.product.id,
+          result: emailResult.ok ? "sent" : "failed",
+          detail: emailResult.error ?? "OK",
+        },
+        createdAt: new Date().toISOString(),
+      });
+    }
   }
 }
 
@@ -210,17 +337,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!user.conjuntoId) {
-      return NextResponse.json(
-        { error: "Debes pertenecer a un conjunto para crear emprendimientos." },
-        { status: 400 },
-      );
-    }
+    const assignedConjuntoId = user.conjuntoId || ensureIndependentConjunto(db, user.id);
 
     const timestamp = new Date().toISOString();
     db.emprendimientos.push({
       id: createId(),
-      conjuntoId: user.conjuntoId,
+      conjuntoId: assignedConjuntoId,
       ownerId: user.id,
       name,
       description,
@@ -236,7 +358,7 @@ export async function POST(request: NextRequest) {
     const conjuntoAdmins = db.users.filter(
       (entry) =>
         entry.role === "admin_conjunto" &&
-        entry.conjuntoId === user.conjuntoId &&
+        entry.conjuntoId === assignedConjuntoId &&
         entry.status === "active",
     );
     for (const admin of conjuntoAdmins) {
@@ -384,6 +506,12 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    if (imageUrls.length > MAX_PRODUCT_IMAGES) {
+      return NextResponse.json(
+        { error: `Un producto puede tener máximo ${MAX_PRODUCT_IMAGES} imágenes.` },
+        { status: 400 },
+      );
+    }
 
     const emprendimiento = db.emprendimientos.find((entry) => entry.id === emprendimientoId);
     if (!emprendimiento || emprendimiento.ownerId !== user.id) {
@@ -401,7 +529,7 @@ export async function POST(request: NextRequest) {
     const slug = uniqueSlug(baseSlug, new Set(db.products.map((entry) => entry.slug)));
 
     const timestamp = new Date().toISOString();
-    db.products.push({
+    const createdProduct = {
       id: createId(),
       emprendimientoId,
       ownerId: user.id,
@@ -414,13 +542,14 @@ export async function POST(request: NextRequest) {
       stock: stockRaw ? Number(stockRaw) : null,
       imageUrls:
         imageUrls.length > 0
-          ? imageUrls
+          ? imageUrls.slice(0, MAX_PRODUCT_IMAGES)
           : [imageUrl || "/images/hero-market.jpg"],
       status,
       viewCount: 0,
       createdAt: timestamp,
       updatedAt: timestamp,
-    });
+    };
+    db.products.push(createdProduct);
 
     pushInAppNotification(
       db,
@@ -428,6 +557,23 @@ export async function POST(request: NextRequest) {
       "producto_created",
       `Producto "${name}" creado correctamente.`,
     );
+
+    if (status === "published") {
+      await notifyFollowersAboutNewProduct({
+        db,
+        emprendimiento: {
+          id: emprendimiento.id,
+          name: emprendimiento.name,
+        },
+        product: {
+          id: createdProduct.id,
+          name: createdProduct.name,
+          slug: createdProduct.slug,
+          price: createdProduct.price,
+        },
+        ownerId: user.id,
+      });
+    }
 
     await writeDb(db);
     return NextResponse.json({ ok: true, message: "Producto creado." });
@@ -462,6 +608,12 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "El precio especial debe ser menor que el precio regular." },
+        { status: 400 },
+      );
+    }
+    if (imageUrls.length > MAX_PRODUCT_IMAGES) {
+      return NextResponse.json(
+        { error: `Un producto puede tener máximo ${MAX_PRODUCT_IMAGES} imágenes.` },
         { status: 400 },
       );
     }
@@ -503,7 +655,10 @@ export async function POST(request: NextRequest) {
     product.specialPrice = specialPriceValue;
     product.category = category;
     product.stock = stockRaw ? Number(stockRaw) : null;
-    product.imageUrls = imageUrls.length > 0 ? imageUrls : product.imageUrls;
+    product.imageUrls =
+      imageUrls.length > 0
+        ? imageUrls.slice(0, MAX_PRODUCT_IMAGES)
+        : product.imageUrls.slice(0, MAX_PRODUCT_IMAGES);
     product.status = status;
     product.updatedAt = new Date().toISOString();
 
@@ -537,8 +692,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
     }
 
+    const previousStatus = product.status;
     product.status = status as ProductStatus;
     product.updatedAt = new Date().toISOString();
+
+    if (previousStatus !== "published" && product.status === "published") {
+      const emprendimiento = db.emprendimientos.find(
+        (entry) => entry.id === product.emprendimientoId,
+      );
+      if (emprendimiento) {
+        await notifyFollowersAboutNewProduct({
+          db,
+          emprendimiento: {
+            id: emprendimiento.id,
+            name: emprendimiento.name,
+          },
+          product: {
+            id: product.id,
+            name: product.name,
+            slug: product.slug,
+            price: product.price,
+          },
+          ownerId: user.id,
+        });
+      }
+    }
 
     await writeDb(db);
     return NextResponse.json({ ok: true, message: "Estado de producto actualizado." });

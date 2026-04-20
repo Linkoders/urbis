@@ -7,10 +7,320 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model AppState {
-  id        String   @id @default("default")
-  data      Json
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum AnnouncementAudienceType {
+  ALL_USERS
+  BY_ROLE
+  BY_CONJUNTO
+  BY_EMPRENDIMIENTO
+  CUSTOM_USERS
 }
 
+enum AnnouncementStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  QUEUED
+  SENT
+  FAILED
+  READ
+  DISMISSED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  PUSH
+}
+
+enum ProductNotificationFrequency {
+  INSTANT
+  DAILY
+  WEEKLY
+}
+
+model UserRecord {
+  id                     String                 @id
+  name                   String
+  email                  String                 @unique
+  passwordHash           String
+  role                   String
+  conjuntoId             String?
+  avatarUrl              String?
+  status                 String
+  acceptedTermsAt        DateTime?
+  createdAt              DateTime
+  createdConjuntos       ConjuntoRecord[]       @relation("ConjuntoCreatedBy")
+  requestedConjuntos     ConjuntoRequestRecord[] @relation("ConjuntoRequestRequestedBy")
+  reviewedConjunto       ConjuntoRequestRecord[] @relation("ConjuntoRequestReviewedBy")
+  ownedEmprendimientos   EmprendimientoRecord[] @relation("EmprendimientoOwner")
+  ownedProducts          ProductRecord[]        @relation("ProductOwner")
+  reviews                ReviewRecord[]         @relation("ReviewAuthor")
+  notifications          NotificationRecord[]
+  entrepreneurProfile    EntrepreneurProfileRecord?
+  notificationPreference NotificationPreferenceRecord?
+  announcementsCreated   AnnouncementRecord[]   @relation("AnnouncementCreatedBy")
+  announcementDeliveries AnnouncementDeliveryRecord[] @relation("AnnouncementDeliveryUser")
+  productInterests       ProductInterestRecord[]
+  productVisits          UserProductVisitRecord[] @relation("UserProductVisits")
+  emprendimientoVisits   EmprendimientoVisitRecord[] @relation("UserEmprendimientoVisits")
+  favoriteProducts       UserFavoriteProductRecord[]
+  followedEmprendimientos EmprendimientoFollowRecord[]
+}
+
+model ConjuntoRecord {
+  id              String               @id
+  name            String
+  slug            String               @unique
+  location        String
+  description     String
+  logoUrl         String?
+  status          String
+  createdBy       String
+  createdAt       DateTime
+  createdByUser   UserRecord           @relation("ConjuntoCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  emprendimientos EmprendimientoRecord[]
+  entrepreneurProfiles EntrepreneurProfileRecord[] @relation("EntrepreneurDefaultConjunto")
+  targetedAnnouncements AnnouncementRecord[] @relation("AnnouncementTargetConjunto")
+}
+
+model ConjuntoRequestRecord {
+  id                String      @id
+  nameRequested     String
+  location          String
+  description       String
+  logoUrl           String?
+  contactEmail      String
+  requestedByUserId String?
+  status            String
+  reviewedBy        String?
+  createdAt         DateTime
+  updatedAt         DateTime
+  requestedByUser   UserRecord? @relation("ConjuntoRequestRequestedBy", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  reviewedByUser    UserRecord? @relation("ConjuntoRequestReviewedBy", fields: [reviewedBy], references: [id], onDelete: SetNull)
+}
+
+model EmprendimientoRecord {
+  id            String          @id
+  conjuntoId    String
+  ownerId       String
+  name          String
+  description   String
+  logoUrl       String?
+  contactEmail  String?
+  contactPhone  String?
+  visibility    String
+  status        String
+  createdAt     DateTime
+  updatedAt     DateTime
+  conjunto      ConjuntoRecord  @relation(fields: [conjuntoId], references: [id], onDelete: Restrict)
+  owner         UserRecord      @relation("EmprendimientoOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  products      ProductRecord[]
+  targetedAnnouncements AnnouncementRecord[] @relation("AnnouncementTargetEmprendimiento")
+  productVisits UserProductVisitRecord[]
+  visitEvents EmprendimientoVisitRecord[]
+  followers EmprendimientoFollowRecord[]
+}
+
+model ProductRecord {
+  id              String              @id
+  emprendimientoId String
+  ownerId         String
+  name            String
+  slug            String
+  description     String
+  price           Float
+  specialPrice    Float?
+  category        String
+  stock           Int?
+  imageUrls       Json
+  status          String
+  viewCount       Int
+  createdAt       DateTime
+  updatedAt       DateTime
+  emprendimiento  EmprendimientoRecord @relation(fields: [emprendimientoId], references: [id], onDelete: Restrict)
+  owner           UserRecord           @relation("ProductOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  reviews         ReviewRecord[]
+  interests       ProductInterestRecord[]
+  visits          UserProductVisitRecord[]
+  favoritedBy     UserFavoriteProductRecord[]
+}
+
+model ReviewRecord {
+  id        String       @id
+  productId String
+  authorId  String
+  rating    Int
+  comment   String
+  status    String
+  createdAt DateTime
+  product   ProductRecord @relation(fields: [productId], references: [id], onDelete: Restrict)
+  author    UserRecord    @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+}
+
+model NotificationRecord {
+  id        String    @id
+  userId    String
+  type      String
+  channel   String
+  status    String
+  metadata  Json
+  createdAt DateTime
+  user      UserRecord @relation(fields: [userId], references: [id], onDelete: Restrict)
+}
+
+model FeedbackMessageRecord {
+  id        String   @id
+  name      String
+  email     String
+  message   String
+  category  String
+  status    String
+  createdAt DateTime
+}
+
+model EntrepreneurProfileRecord {
+  userId            String   @id
+  displayName       String?
+  bio               String?
+  isIndependent     Boolean  @default(true)
+  defaultConjuntoId String?
+  approvalStatus    String   @default("active")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              UserRecord @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultConjunto   ConjuntoRecord? @relation("EntrepreneurDefaultConjunto", fields: [defaultConjuntoId], references: [id], onDelete: SetNull)
+}
+
+model NotificationPreferenceRecord {
+  userId                           String   @id
+  wantsProductNotifications        Boolean  @default(false)
+  wantsAnnouncementNotifications   Boolean  @default(true)
+  wantsPersonalizedRecommendations Boolean  @default(true)
+  wantsEmail                       Boolean  @default(false)
+  wantsPush                        Boolean  @default(false)
+  productNotificationFrequency     ProductNotificationFrequency @default(INSTANT)
+  askedAt                          DateTime?
+  respondedAt                      DateTime?
+  createdAt                        DateTime @default(now())
+  updatedAt                        DateTime @updatedAt
+  user                             UserRecord @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AnnouncementRecord {
+  id                    String                 @id @default(cuid())
+  title                 String
+  body                  String
+  createdBy             String
+  status                AnnouncementStatus     @default(DRAFT)
+  audienceType          AnnouncementAudienceType @default(ALL_USERS)
+  targetRole            String?
+  targetConjuntoId      String?
+  targetEmprendimientoId String?
+  scheduledAt           DateTime?
+  sentAt                DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  createdByUser         UserRecord             @relation("AnnouncementCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  targetConjunto        ConjuntoRecord?        @relation("AnnouncementTargetConjunto", fields: [targetConjuntoId], references: [id], onDelete: SetNull)
+  targetEmprendimiento  EmprendimientoRecord?  @relation("AnnouncementTargetEmprendimiento", fields: [targetEmprendimientoId], references: [id], onDelete: SetNull)
+  deliveries            AnnouncementDeliveryRecord[]
+
+  @@index([status, scheduledAt])
+  @@index([audienceType, targetRole])
+}
+
+model AnnouncementDeliveryRecord {
+  id             String              @id @default(cuid())
+  announcementId String
+  userId         String
+  channel        NotificationChannel @default(IN_APP)
+  status         DeliveryStatus      @default(QUEUED)
+  errorMessage   String?
+  sentAt         DateTime?
+  readAt         DateTime?
+  clickedAt      DateTime?
+  createdAt      DateTime            @default(now())
+  announcement   AnnouncementRecord  @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user           UserRecord          @relation("AnnouncementDeliveryUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId, channel])
+  @@index([userId, status, createdAt])
+}
+
+model ProductInterestRecord {
+  id               String   @id @default(cuid())
+  userId           String
+  productId        String?
+  category         String?
+  tag              String?
+  weight           Float    @default(1)
+  source           String   @default("behavior")
+  lastInteractedAt DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             UserRecord @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product          ProductRecord? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([userId, lastInteractedAt])
+  @@index([category, tag])
+}
+
+model UserProductVisitRecord {
+  id              String   @id @default(cuid())
+  userId          String?
+  productId       String
+  emprendimientoId String
+  sessionId       String?
+  referrer        String?
+  dwellSeconds    Int?
+  visitedAt       DateTime @default(now())
+  user            UserRecord? @relation("UserProductVisits", fields: [userId], references: [id], onDelete: SetNull)
+  product         ProductRecord @relation(fields: [productId], references: [id], onDelete: Cascade)
+  emprendimiento  EmprendimientoRecord @relation(fields: [emprendimientoId], references: [id], onDelete: Cascade)
+
+  @@index([productId, visitedAt])
+  @@index([emprendimientoId, visitedAt])
+  @@index([userId, visitedAt])
+}
+
+model EmprendimientoVisitRecord {
+  id              String   @id @default(cuid())
+  userId          String?
+  emprendimientoId String
+  sessionId       String?
+  referrer        String?
+  visitedAt       DateTime @default(now())
+  user            UserRecord? @relation("UserEmprendimientoVisits", fields: [userId], references: [id], onDelete: SetNull)
+  emprendimiento  EmprendimientoRecord @relation(fields: [emprendimientoId], references: [id], onDelete: Cascade)
+
+  @@index([emprendimientoId, visitedAt])
+  @@index([userId, visitedAt])
+}
+
+model UserFavoriteProductRecord {
+  userId     String
+  productId  String
+  createdAt  DateTime @default(now())
+  user       UserRecord @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product    ProductRecord @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([userId, productId])
+  @@index([productId, createdAt])
+}
+
+model EmprendimientoFollowRecord {
+  userId           String
+  emprendimientoId String
+  notifyNewProducts Boolean @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             UserRecord @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emprendimiento   EmprendimientoRecord @relation(fields: [emprendimientoId], references: [id], onDelete: Cascade)
+
+  @@id([userId, emprendimientoId])
+  @@index([emprendimientoId, notifyNewProducts])
+}

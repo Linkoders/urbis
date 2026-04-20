@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FullScreenSpinner, Spinner } from "@/components/spinner";
 
 interface CatalogProduct {
   id: string;
@@ -321,6 +322,7 @@ function ProductsContent() {
                     src={product.image}
                     alt={product.name}
                     fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-cover transition duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
@@ -355,7 +357,9 @@ function ProductsContent() {
 
         <div ref={sentinelRef} className="h-12" />
         {loadingMore ? (
-          <p className="text-sm text-zinc-400">Cargando más productos...</p>
+          <div className="flex items-center justify-center">
+            <Spinner label="Cargando mas productos" />
+          </div>
         ) : null}
       </section>
     </main>
@@ -364,14 +368,9 @@ function ProductsContent() {
 
 export default function ProductsPage() {
   return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-screen items-center justify-center bg-[#070b10] text-zinc-100">
-          <p className="text-zinc-300">Cargando productos...</p>
-        </main>
-      }
-    >
+    <Suspense fallback={<FullScreenSpinner label="Cargando productos" />}>
       <ProductsContent />
     </Suspense>
   );
 }
+

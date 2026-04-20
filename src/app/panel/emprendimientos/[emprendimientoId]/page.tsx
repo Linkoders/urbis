@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { FullScreenSpinner } from "@/components/spinner";
 
 interface SessionUser {
   id: string;
@@ -186,11 +187,7 @@ export default function EmprendimientoProductsPage() {
   }
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#070b10] text-zinc-100">
-        <p className="text-zinc-300">Cargando productos...</p>
-      </main>
-    );
+    return <FullScreenSpinner label="Cargando productos" />;
   }
 
   if (!user || !emprendimiento) {
@@ -323,10 +320,17 @@ export default function EmprendimientoProductsPage() {
         </section>
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => (
+          {products.map((product, index) => (
             <article key={product.id} className="overflow-hidden border border-white/10 bg-black/25">
               <div className="relative h-48">
-                <Image src={product.image} alt={product.name} fill className="object-cover" />
+                <Image
+                  src={product.image}
+                  alt={product.name}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  priority={index === 0}
+                  className="object-cover"
+                />
               </div>
               <div className="space-y-2 p-4">
                 <p className="text-xs uppercase tracking-[0.12em] text-zinc-400">{product.category}</p>

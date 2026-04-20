@@ -1,7 +1,8 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FullScreenSpinner } from "@/components/spinner";
 
 interface ReportSummary {
   totalProducts: number;
@@ -59,12 +60,27 @@ function scopeLabel(scope: ReportsPayload["scope"]): string {
   return "Toda la plataforma";
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [data, setData] = useState<ReportsPayload | null>(null);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
+    if (loadedRef.current) {
+      return;
+    }
+    loadedRef.current = true;
+
     async function loadReport() {
       setLoading(true);
       setError("");
@@ -85,50 +101,138 @@ export default function ReportsPage() {
     void loadReport();
   }, []);
 
-  const csvRows = useMemo(() => {
+  const exportRows = useMemo(() => {
     if (!data) return [];
 
-    const rows = [
-      [
-        "Producto",
-        "Categoría",
-        "Vistas",
-        "Rating",
-        "Precio final",
-        "Promedio precio URBIS",
-        "Delta precio URBIS (%)",
-        "Consejo",
-        "Fuente consejo",
-      ],
-    ];
-
-    for (const item of data.comparisons) {
-      rows.push([
-        item.productName,
-        item.category,
-        String(item.views),
-        String(item.rating),
-        String(item.finalPrice),
-        String(item.avgUrbisPrice),
-        String(item.priceDeltaVsUrbisPct),
-        item.suggestion,
-        item.suggestionSource,
-      ]);
-    }
-
-    return rows;
+    return data.comparisons.map((item) => ({
+      productName: item.productName,
+      category: item.category,
+      views: item.views,
+      rating: item.rating,
+      finalPrice: item.finalPrice,
+      avgUrbisPrice: item.avgUrbisPrice,
+      priceDeltaVsUrbisPct: item.priceDeltaVsUrbisPct,
+      suggestion: item.suggestion,
+      suggestionSource: item.suggestionSource,
+    }));
   }, [data]);
 
-  function downloadCsv() {
-    if (csvRows.length === 0) return;
-    const csvContent = csvRows
-      .map((row) => row.map((cell) => `"${cell.replaceAll("\"", "\"\"")}"`).join(","))
-      .join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  function downloadXls() {
+    if (!data || exportRows.length === 0) return;
+
+    const logoSvg =
+      "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='28' viewBox='0 0 120 28'><rect width='120' height='28' rx='6' fill='%230f172a'/><text x='14' y='19' font-family='Segoe UI,Arial,sans-serif' font-size='13' font-weight='700' fill='%2334d399'>URBIS</text><circle cx='94' cy='14' r='4' fill='%23f59e0b'/><circle cx='106' cy='14' r='4' fill='%2334d399'/></svg>";
+    const logoUrl = `data:image/svg+xml,${encodeURIComponent(logoSvg)}`;
+
+    const summaryCards = [
+      { label: "Productos", value: data.summary.totalProducts.toLocaleString("es-EC") },
+      { label: "Publicados", value: data.summary.publishedProducts.toLocaleString("es-EC") },
+      { label: "En oferta", value: data.summary.onSaleProducts.toLocaleString("es-EC") },
+      { label: "Vistas", value: data.summary.totalViews.toLocaleString("es-EC") },
+      { label: "Reseñas", value: data.summary.totalReviews.toLocaleString("es-EC") },
+      { label: "Rating promedio", value: String(data.summary.averageRating) },
+    ]
+      .map(
+        (item) =>
+          `<td class="card"><div class="card-label">${escapeHtml(item.label)}</div><div class="card-value">${escapeHtml(item.value)}</div></td>`,
+      )
+      .join("");
+
+    const topRows = data.topProducts
+      .map(
+        (item, index) => `<tr class="${index % 2 === 0 ? "even" : "odd"}">
+          <td>${escapeHtml(item.name)}</td>
+          <td>${escapeHtml(item.category)}</td>
+          <td class="num">${item.views}</td>
+          <td class="num">${item.reviews}</td>
+          <td class="num">${item.rating}</td>
+          <td class="num">$${item.finalPrice.toFixed(2)}</td>
+        </tr>`,
+      )
+      .join("");
+
+    const comparisonRows = exportRows
+      .map(
+        (item, index) => `<tr class="${index % 2 === 0 ? "even" : "odd"}">
+          <td>${escapeHtml(item.productName)}</td>
+          <td>${escapeHtml(item.category)}</td>
+          <td class="num">${item.views}</td>
+          <td class="num">${item.rating}</td>
+          <td class="num">$${item.finalPrice.toFixed(2)}</td>
+          <td class="num">$${item.avgUrbisPrice.toFixed(2)}</td>
+          <td class="num">${item.priceDeltaVsUrbisPct}%</td>
+          <td class="wrap">${escapeHtml(item.suggestion)}</td>
+          <td>${item.suggestionSource === "gemini" ? "Consejo IA" : "Consejo base"}</td>
+        </tr>`,
+      )
+      .join("");
+
+    const generatedAt = new Date(data.generatedAt).toLocaleString("es-EC");
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: Segoe UI, Arial, sans-serif; margin: 0; color: #0f172a; }
+    .hero { background: linear-gradient(90deg, #0f172a, #1e293b); color: #ffffff; padding: 18px; }
+    .hero h1 { margin: 10px 0 4px 0; font-size: 24px; }
+    .hero p { margin: 0; font-size: 12px; color: #cbd5e1; }
+    .container { padding: 14px 18px 20px 18px; }
+    .section-title { margin: 18px 0 8px 0; font-size: 14px; font-weight: 700; color: #19593f; text-transform: uppercase; letter-spacing: .08em; }
+    table { border-collapse: collapse; width: 100%; }
+    .cards td.card { border: 1px solid #dbe4ea; background: #f8fafc; padding: 10px; width: 16.66%; }
+    .card-label { font-size: 11px; color: #475569; text-transform: uppercase; }
+    .card-value { margin-top: 4px; font-size: 18px; font-weight: 700; color: #0f172a; }
+    .grid th { background: #19593f; color: #ffffff; border: 1px solid #dbe4ea; padding: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+    .grid td { border: 1px solid #e2e8f0; padding: 8px; font-size: 12px; vertical-align: top; }
+    .grid tr.even td { background: #ffffff; }
+    .grid tr.odd td { background: #f8fafc; }
+    .grid td.num { text-align: right; }
+    .grid td.wrap { white-space: normal; min-width: 280px; line-height: 1.4; }
+    .badge { display: inline-block; background: #ecfdf5; border: 1px solid #34d399; color: #065f46; padding: 2px 8px; border-radius: 999px; font-size: 11px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <img src="${logoUrl}" alt="URBIS" />
+    <h1>Reporte Comercial URBIS</h1>
+    <p>Alcance: ${escapeHtml(scopeLabel(data.scope))} | Generado: ${escapeHtml(generatedAt)}</p>
+    <span class="badge">Fuentes: URBIS ${data.marketSources?.geminiEnabled ? "+ Gemini" : ""}</span>
+  </div>
+  <div class="container">
+    <div class="section-title">Resumen</div>
+    <table class="cards"><tr>${summaryCards}</tr></table>
+
+    <div class="section-title">Productos más vistos</div>
+    <table class="grid">
+      <thead>
+        <tr>
+          <th>Producto</th><th>Categoría</th><th>Vistas</th><th>Reseñas</th><th>Rating</th><th>Precio final</th>
+        </tr>
+      </thead>
+      <tbody>${topRows}</tbody>
+    </table>
+
+    <div class="section-title">Comparación y recomendaciones</div>
+    <table class="grid">
+      <thead>
+        <tr>
+          <th>Producto</th><th>Categoría</th><th>Vistas</th><th>Rating</th><th>Precio final</th>
+          <th>Prom. precio URBIS</th><th>Delta precio (%)</th><th>Consejo</th><th>Fuente</th>
+        </tr>
+      </thead>
+      <tbody>${comparisonRows}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "reporte-urbis.csv";
+    link.download = "reporte-urbis.xls";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -136,11 +240,7 @@ export default function ReportsPage() {
   }
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#070b10] text-zinc-100">
-        <p className="text-zinc-300">Cargando reportes...</p>
-      </main>
-    );
+    return <FullScreenSpinner label="Cargando reportes" />;
   }
 
   if (!data) {
@@ -175,10 +275,10 @@ export default function ReportsPage() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={downloadCsv}
+              onClick={downloadXls}
               className="border border-emerald-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-200 hover:bg-emerald-500/10"
             >
-              Descargar CSV
+              Descargar XLS
             </button>
             <Link
               href="/panel"
@@ -251,8 +351,12 @@ export default function ReportsPage() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-white">Comparación contra productos similares en URBIS</h2>
           <div className="grid gap-4 md:grid-cols-2">
-            {data.comparisons.map((item) => (
-              <article key={item.productId} className="border border-white/10 bg-black/25 p-5">
+            {data.comparisons.map((item, index) => (
+              <article
+                key={item.productId}
+                className="fade-up border border-white/10 bg-black/25 p-5 transition duration-300 hover:border-emerald-300/40 hover:bg-black/35"
+                style={{ animationDelay: `${index * 60}ms` }}
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-xs uppercase tracking-[0.12em] text-zinc-400">{item.category}</p>
@@ -311,7 +415,7 @@ export default function ReportsPage() {
                   </span>
                 </div>
 
-                <p className="mt-3 text-sm text-zinc-200">{item.suggestion}</p>
+                <p className="mt-3 text-sm leading-relaxed text-zinc-200">{item.suggestion}</p>
               </article>
             ))}
           </div>

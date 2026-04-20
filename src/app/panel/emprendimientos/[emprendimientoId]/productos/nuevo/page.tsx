@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { PRODUCT_CATEGORIES } from "@/config/product-categories";
 import { uploadImageFiles } from "@/lib/upload-client";
+import { Spinner } from "@/components/spinner";
 
 interface SessionUser {
   id: string;
@@ -20,6 +21,26 @@ interface HierarchyResponse {
   };
 }
 
+const MAX_PRODUCT_IMAGES = 5;
+
+function fileKey(file: File): string {
+  return `${file.name}-${file.size}-${file.lastModified}`;
+}
+
+function mergeProductImages(current: File[], incoming: File[]): File[] {
+  const byKey = new Map<string, File>();
+
+  for (const file of current) {
+    byKey.set(fileKey(file), file);
+  }
+
+  for (const file of incoming) {
+    byKey.set(fileKey(file), file);
+  }
+
+  return Array.from(byKey.values()).slice(0, MAX_PRODUCT_IMAGES);
+}
+
 export default function NewProductPage() {
   const router = useRouter();
   const params = useParams<{ emprendimientoId: string }>();
@@ -29,6 +50,7 @@ export default function NewProductPage() {
   const [emprendimientoName, setEmprendimientoName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const loadedRef = useRef(false);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -41,6 +63,11 @@ export default function NewProductPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   useEffect(() => {
+    if (loadedRef.current) {
+      return;
+    }
+    loadedRef.current = true;
+
     async function loadAccess() {
       const response = await fetch(
         `/api/platform/hierarchy?emprendimientoId=${emprendimientoId}`,
@@ -75,6 +102,11 @@ export default function NewProductPage() {
 
     if (imageFiles.length === 0) {
       setError("Debes subir al menos una imagen del producto.");
+      setLoading(false);
+      return;
+    }
+    if (imageFiles.length > MAX_PRODUCT_IMAGES) {
+      setError(`Puedes subir hasta ${MAX_PRODUCT_IMAGES} imágenes por producto.`);
       setLoading(false);
       return;
     }
@@ -213,12 +245,25 @@ export default function NewProductPage() {
               accept="image/*"
               multiple
               onChange={(event) => {
-                const files = Array.from(event.target.files ?? []);
-                setImageFiles(files);
-                setImagePreviews(files.map((file) => URL.createObjectURL(file)));
+                const incoming = Array.from(event.target.files ?? []);
+                if (incoming.length === 0) {
+                  return;
+                }
+
+                const merged = mergeProductImages(imageFiles, incoming);
+                if (merged.length < imageFiles.length + incoming.length) {
+                  setError(`Solo se guardan ${MAX_PRODUCT_IMAGES} imágenes máximo.`);
+                } else {
+                  setError("");
+                }
+
+                setImageFiles(merged);
+                setImagePreviews(merged.map((file) => URL.createObjectURL(file)));
+                event.currentTarget.value = "";
               }}
               className="w-full border border-white/20 bg-black/40 px-4 py-3"
             />
+            <p className="text-xs text-zinc-400">Máximo {MAX_PRODUCT_IMAGES} imágenes. Puedes seleccionar varias veces.</p>
             <div className="grid grid-cols-4 gap-2">
               {(imagePreviews.length > 0 ? imagePreviews : ["/images/hero-market.jpg"]).map(
                 (preview, index) => (
@@ -240,7 +285,14 @@ export default function NewProductPage() {
               disabled={loading}
               className="bg-zinc-100 px-5 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-black hover:bg-white disabled:opacity-60"
             >
-              {loading ? "Guardando..." : "Crear producto"}
+              {loading ? (
+                <span className="inline-flex items-center gap-2">
+                  <Spinner size="sm" className="text-black" />
+                  Guardando...
+                </span>
+              ) : (
+                "Crear producto"
+              )}
             </button>
             <Link
               href={`/panel/emprendimientos/${emprendimientoId}`}

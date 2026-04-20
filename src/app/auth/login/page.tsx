@@ -6,8 +6,8 @@ import { FormEvent, useState } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("residente@urbis.local");
-  const [password, setPassword] = useState("Demo123!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -46,7 +46,7 @@ export default function LoginPage() {
           Iniciar sesión
         </h1>
         <p className="mt-4 text-zinc-300">
-          Ingresa como residente, encargado de conjunto o superadmin para gestionar el marketplace.
+          Ingresa con tu cuenta para gestionar URBIS.
         </p>
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
@@ -54,6 +54,7 @@ export default function LoginPage() {
             <span className="mb-2 block text-sm uppercase tracking-wider text-zinc-300">Email</span>
             <input
               type="email"
+              suppressHydrationWarning
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               className="w-full border border-white/20 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-emerald-300"
@@ -65,6 +66,7 @@ export default function LoginPage() {
             <span className="mb-2 block text-sm uppercase tracking-wider text-zinc-300">Contraseña</span>
             <input
               type="password"
+              suppressHydrationWarning
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="w-full border border-white/20 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-emerald-300"
@@ -76,19 +78,13 @@ export default function LoginPage() {
 
           <button
             type="submit"
+            suppressHydrationWarning
             disabled={loading}
             className="w-full bg-zinc-100 px-5 py-3 text-sm font-bold uppercase tracking-[0.16em] text-black transition hover:bg-white disabled:opacity-70"
           >
             {loading ? "Ingresando..." : "Entrar"}
           </button>
         </form>
-
-        <div className="mt-8 grid gap-2 text-sm text-zinc-300">
-          <p className="font-semibold">Credenciales demo:</p>
-          <p>Residente: residente@urbis.local / Demo123!</p>
-          <p>Admin: admin@urbis.local / Admin123!</p>
-          <p>Superadmin: super@urbis.local / Super123!</p>
-        </div>
 
         <div className="mt-8 flex flex-wrap gap-4 text-sm uppercase tracking-[0.12em] text-zinc-300">
           <Link href="/auth/register" className="hover:text-white">

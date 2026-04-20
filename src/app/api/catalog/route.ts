@@ -1,8 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-import { canViewProduct, computeRating, getSessionUser, readDb } from "@/lib/urbis-store";
+import { canViewProduct, getSessionUser, readDb } from "@/lib/urbis-store";
 import { PRODUCT_CATEGORIES } from "@/config/product-categories";
 
 export const runtime = "nodejs";
+
+function safeNumber(value: string | null): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function buildRatingsByProductId(
+  reviews: Array<{ productId: string; rating: number; status: string }>,
+): Map<string, { average: number; total: number }> {
+  const summary = new Map<string, { sum: number; total: number }>();
+  for (const review of reviews) {
+    if (review.status !== "visible") {
+      continue;
+    }
+
+    const current = summary.get(review.productId);
+    if (current) {
+      current.sum += review.rating;
+      current.total += 1;
+    } else {
+      summary.set(review.productId, { sum: review.rating, total: 1 });
+    }
+  }
+
+  const result = new Map<string, { average: number; total: number }>();
+  for (const [productId, entry] of summary.entries()) {
+    result.set(productId, {
+      average: Number((entry.sum / entry.total).toFixed(1)),
+      total: entry.total,
+    });
+  }
+
+  return result;
+}
 
 export async function GET(request: NextRequest) {
   const db = await readDb();
@@ -14,28 +52,26 @@ export async function GET(request: NextRequest) {
   const sort = request.nextUrl.searchParams.get("sort") ?? "recent";
   const onSaleOnly = request.nextUrl.searchParams.get("onSale") === "1";
   const scope = request.nextUrl.searchParams.get("scope") ?? "all";
-  const minPriceRaw = request.nextUrl.searchParams.get("minPrice");
-  const maxPriceRaw = request.nextUrl.searchParams.get("maxPrice");
-  const offsetRaw = request.nextUrl.searchParams.get("offset");
-  const limitRaw = request.nextUrl.searchParams.get("limit");
-
-  const minPrice = minPriceRaw ? Number(minPriceRaw) : null;
-  const maxPrice = maxPriceRaw ? Number(maxPriceRaw) : null;
-  const offset = offsetRaw ? Number(offsetRaw) : 0;
-  const parsedLimit = limitRaw ? Number(limitRaw) : 12;
+  const minPrice = safeNumber(request.nextUrl.searchParams.get("minPrice"));
+  const maxPrice = safeNumber(request.nextUrl.searchParams.get("maxPrice"));
+  const offset = safeNumber(request.nextUrl.searchParams.get("offset")) ?? 0;
+  const parsedLimit = safeNumber(request.nextUrl.searchParams.get("limit")) ?? 12;
   const limit = Math.min(Math.max(parsedLimit, 1), 24);
-  const safeOffset = Number.isNaN(offset) || offset < 0 ? 0 : offset;
+  const safeOffset = offset < 0 ? 0 : offset;
+
+  const emprendimientoById = new Map(
+    db.emprendimientos.map((entry) => [entry.id, entry] as const),
+  );
+  const conjuntoById = new Map(db.conjuntos.map((entry) => [entry.id, entry] as const));
+  const ratingByProductId = buildRatingsByProductId(db.reviews);
 
   const items = db.products.flatMap((product) => {
-    const emprendimiento = db.emprendimientos.find(
-      (entry) => entry.id === product.emprendimientoId,
-    );
-
+    const emprendimiento = emprendimientoById.get(product.emprendimientoId);
     if (!emprendimiento) {
       return [];
     }
 
-    const conjunto = db.conjuntos.find((entry) => entry.id === emprendimiento.conjuntoId);
+    const conjunto = conjuntoById.get(emprendimiento.conjuntoId);
     if (!conjunto) {
       return [];
     }
@@ -44,7 +80,7 @@ export async function GET(request: NextRequest) {
       return [];
     }
 
-    const rating = computeRating(product.id, db);
+    const rating = ratingByProductId.get(product.id) ?? { average: 0, total: 0 };
     const specialPrice =
       typeof product.specialPrice === "number" ? product.specialPrice : null;
     const onSale = specialPrice !== null && specialPrice < product.price;

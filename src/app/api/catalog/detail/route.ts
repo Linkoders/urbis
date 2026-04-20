@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import {
   canViewProduct,
@@ -6,6 +7,7 @@ import {
   readDb,
   writeDb,
 } from "@/lib/urbis-store";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -19,6 +21,8 @@ export async function GET(request: NextRequest) {
 
   const db = await readDb();
   const viewer = await getSessionUser(request);
+  const visitorSessionId =
+    request.cookies.get("urbis_visitor_id")?.value?.trim() || randomUUID();
 
   const product = db.products.find((entry) => {
     if (productId) {
@@ -39,8 +43,22 @@ export async function GET(request: NextRequest) {
   }
 
   const conjunto = db.conjuntos.find((entry) => entry.id === emprendimiento.conjuntoId);
-  if (!conjunto || !canViewProduct(product, emprendimiento, conjunto, viewer)) {
+  const canManageAsOwnerOrAdmin = Boolean(
+    viewer &&
+      (viewer.id === product.ownerId ||
+        viewer.role === "superadmin" ||
+        (viewer.role === "admin_conjunto" && viewer.conjuntoId === emprendimiento.conjuntoId)),
+  );
+
+  if (
+    !canManageAsOwnerOrAdmin &&
+    (!conjunto || !canViewProduct(product, emprendimiento, conjunto, viewer))
+  ) {
     return NextResponse.json({ error: "No autorizado para ver este producto." }, { status: 403 });
+  }
+
+  if (!conjunto) {
+    return NextResponse.json({ error: "Conjunto no encontrado." }, { status: 404 });
   }
 
   product.viewCount += 1;
@@ -68,7 +86,43 @@ export async function GET(request: NextRequest) {
       };
     });
 
-  return NextResponse.json({
+  try {
+    await prisma.userProductVisitRecord.create({
+      data: {
+        userId: viewer?.id ?? null,
+        productId: product.id,
+        emprendimientoId: emprendimiento.id,
+        sessionId: visitorSessionId,
+        referrer: request.headers.get("referer") || null,
+      },
+    });
+
+    await prisma.emprendimientoVisitRecord.create({
+      data: {
+        userId: viewer?.id ?? null,
+        emprendimientoId: emprendimiento.id,
+        sessionId: visitorSessionId,
+        referrer: request.headers.get("referer") || null,
+      },
+    });
+
+    if (viewer) {
+      await prisma.productInterestRecord.create({
+        data: {
+          userId: viewer.id,
+          productId: product.id,
+          category: product.category,
+          source: "product_view",
+          weight: 1,
+          lastInteractedAt: new Date(),
+        },
+      });
+    }
+  } catch {
+    // Keep product endpoint resilient even if personalization tracking fails.
+  }
+
+  const response = NextResponse.json({
     product: {
       ...product,
       specialPrice,
@@ -92,4 +146,13 @@ export async function GET(request: NextRequest) {
       reviews,
     },
   });
+
+  response.cookies.set("urbis_visitor_id", visitorSessionId, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+
+  return response;
 }

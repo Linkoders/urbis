@@ -97,7 +97,7 @@ export interface Notification {
   userId: string;
   type: string;
   channel: "email" | "in_app";
-  status: "queued" | "sent" | "read";
+  status: "queued" | "sent" | "read" | "failed";
   metadata: Record<string, string>;
   createdAt: string;
 }

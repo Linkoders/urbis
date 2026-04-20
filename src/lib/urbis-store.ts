@@ -14,10 +14,19 @@ import type {
   UserRole,
 } from "./urbis-types";
 import { prisma } from "./prisma";
+import { toClientAssetUrl } from "./blob-utils";
 
 const DB_DIR = join(process.cwd(), "data");
 const DB_PATH = join(DB_DIR, "urbis-db.json");
 export const SESSION_COOKIE = "urbis_session";
+const RELATIONAL_CACHE_TTL_MS = (() => {
+  const raw = Number(process.env.URBIS_DB_CACHE_TTL_MS ?? "1500");
+  return Number.isFinite(raw) && raw >= 0 ? raw : 1500;
+})();
+
+let relationalSeedChecked = false;
+let relationalCache: { db: UrbisDb; timestamp: number } | null = null;
+let relationalReadPromise: Promise<UrbisDb> | null = null;
 
 const now = () => new Date().toISOString();
 
@@ -55,12 +64,6 @@ export function slugify(value: string): string {
 function createSeedDb(): UrbisDb {
   const timestamp = now();
   const superId = randomUUID();
-  const adminId = randomUUID();
-  const residentId = randomUUID();
-  const conjuntoId = randomUUID();
-  const conjuntoId2 = randomUUID();
-  const emprendimientoId = randomUUID();
-  const emprendimientoId2 = randomUUID();
 
   const users: User[] = [
     {
@@ -75,211 +78,15 @@ function createSeedDb(): UrbisDb {
       acceptedTermsAt: timestamp,
       createdAt: timestamp,
     },
-    {
-      id: adminId,
-      name: "Admin Vista Norte",
-      email: "admin@urbis.local",
-      passwordHash: hashPassword("Admin123!"),
-      role: "admin_conjunto",
-      conjuntoId,
-      avatarUrl: null,
-      status: "active",
-      acceptedTermsAt: timestamp,
-      createdAt: timestamp,
-    },
-    {
-      id: residentId,
-      name: "Residente Demo",
-      email: "residente@urbis.local",
-      passwordHash: hashPassword("Demo123!"),
-      role: "resident",
-      conjuntoId,
-      avatarUrl: null,
-      status: "active",
-      acceptedTermsAt: timestamp,
-      createdAt: timestamp,
-    },
-  ];
-
-  const conjuntos: Conjunto[] = [
-    {
-      id: conjuntoId,
-      name: "Vista Norte",
-      slug: "vista-norte",
-      location: "Quito",
-      description: "Comunidad residencial con enfoque en comercio local.",
-      logoUrl: "/images/owner-1.jpg",
-      status: "approved",
-      createdBy: superId,
-      createdAt: timestamp,
-    },
-    {
-      id: conjuntoId2,
-      name: "Jardines del Sol",
-      slug: "jardines-del-sol",
-      location: "Guayaquil",
-      description: "Urbanizacion con mercado local activo y negocios familiares.",
-      logoUrl: "/images/owner-2.jpg",
-      status: "approved",
-      createdBy: superId,
-      createdAt: timestamp,
-    },
-  ];
-
-  const emprendimientos: Emprendimiento[] = [
-    {
-      id: emprendimientoId,
-      conjuntoId,
-      ownerId: residentId,
-      name: "Huerto Vecinal",
-      description: "Productos frescos y canastas semanales para vecinos.",
-      logoUrl: "/images/market-woman.jpg",
-      contactEmail: "huerto@urbis.local",
-      contactPhone: "+593 99 123 4567",
-      visibility: "public",
-      status: "approved",
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
-    {
-      id: emprendimientoId2,
-      conjuntoId,
-      ownerId: residentId,
-      name: "Tienda Aurora",
-      description: "Articulos para hogar, belleza y regalos de temporada.",
-      logoUrl: "/images/owner-3.jpg",
-      contactEmail: "aurora@urbis.local",
-      contactPhone: "+593 98 555 2244",
-      visibility: "public",
-      status: "approved",
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
-  ];
-
-  const products: Producto[] = [
-    {
-      id: randomUUID(),
-      emprendimientoId,
-      ownerId: residentId,
-      name: "Canasta Organica Familiar",
-      slug: "canasta-organica-familiar",
-      description:
-        "Incluye vegetales de temporada, frutas locales y entregas semanales.",
-      price: 28.5,
-      specialPrice: 22.9,
-      category: "Alimentos",
-      stock: 24,
-      imageUrls: ["/images/hero-market.jpg"],
-      status: "published",
-      viewCount: 43,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
-    {
-      id: randomUUID(),
-      emprendimientoId,
-      ownerId: residentId,
-      name: "Pack de Hierbas Aromaticas",
-      slug: "pack-hierbas-aromaticas",
-      description: "Menta, albahaca y romero para cocina diaria.",
-      price: 9.99,
-      specialPrice: null,
-      category: "Hogar",
-      stock: 30,
-      imageUrls: ["/images/owner-3.jpg"],
-      status: "published",
-      viewCount: 27,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
-    {
-      id: randomUUID(),
-      emprendimientoId: emprendimientoId2,
-      ownerId: residentId,
-      name: "Set de Velas Aromaticas",
-      slug: "set-velas-aromaticas",
-      description: "Velas artesanales de lavanda y canela para hogar.",
-      price: 15.5,
-      specialPrice: 13.2,
-      category: "Hogar y Decoracion",
-      stock: 18,
-      imageUrls: ["/images/night-store.jpg"],
-      status: "published",
-      viewCount: 35,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
-    {
-      id: randomUUID(),
-      emprendimientoId: emprendimientoId2,
-      ownerId: residentId,
-      name: "Kit de Cuidado Facial",
-      slug: "kit-cuidado-facial",
-      description: "Limpieza, hidratacion y protector para rutina diaria.",
-      price: 24.9,
-      specialPrice: null,
-      category: "Belleza y Cuidado Personal",
-      stock: 14,
-      imageUrls: ["/images/market-woman.jpg"],
-      status: "published",
-      viewCount: 22,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
-    {
-      id: randomUUID(),
-      emprendimientoId: emprendimientoId2,
-      ownerId: residentId,
-      name: "Soporte Ajustable para Laptop",
-      slug: "soporte-ajustable-laptop",
-      description: "Soporte ergonomico en aluminio para trabajo en casa.",
-      price: 32,
-      specialPrice: 27.9,
-      category: "Tecnologia y Accesorios",
-      stock: 12,
-      imageUrls: ["/images/owner-1.jpg"],
-      status: "published",
-      viewCount: 19,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
-    {
-      id: randomUUID(),
-      emprendimientoId: emprendimientoId2,
-      ownerId: residentId,
-      name: "Correa Premium para Perro",
-      slug: "correa-premium-perro",
-      description: "Correa reforzada para paseos diarios con mascotas.",
-      price: 18.4,
-      specialPrice: null,
-      category: "Mascotas",
-      stock: 25,
-      imageUrls: ["/images/owner-2.jpg"],
-      status: "published",
-      viewCount: 14,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    },
   ];
 
   return {
     users,
-    conjuntos,
+    conjuntos: [],
     conjuntoRequests: [],
-    emprendimientos,
-    products,
-    reviews: [
-      {
-        id: randomUUID(),
-        productId: products[0].id,
-        authorId: adminId,
-        rating: 5,
-        comment: "Muy buena calidad y entrega puntual.",
-        status: "visible",
-        createdAt: timestamp,
-      },
-    ],
+    emprendimientos: [],
+    products: [],
+    reviews: [],
     notifications: [],
     feedbackMessages: [],
   };
@@ -288,23 +95,26 @@ function createSeedDb(): UrbisDb {
 function normalizeDb(rawDb: UrbisDb): UrbisDb {
   rawDb.users = rawDb.users.map((user) => ({
     ...user,
+    avatarUrl: user.avatarUrl ? toClientAssetUrl(user.avatarUrl) : null,
     acceptedTermsAt: user.acceptedTermsAt ?? null,
   }));
 
   rawDb.conjuntos = rawDb.conjuntos.map((conjunto) => ({
     ...conjunto,
-    logoUrl: conjunto.logoUrl ?? "/images/owner-1.jpg",
+    logoUrl: conjunto.logoUrl ? toClientAssetUrl(conjunto.logoUrl) : "/images/owner-1.jpg",
   }));
 
   rawDb.conjuntoRequests = rawDb.conjuntoRequests.map((request) => ({
     ...request,
-    logoUrl: request.logoUrl ?? null,
+    logoUrl: request.logoUrl ? toClientAssetUrl(request.logoUrl) : null,
     requestedByUserId: request.requestedByUserId ?? null,
   }));
 
   rawDb.emprendimientos = rawDb.emprendimientos.map((emprendimiento) => ({
     ...emprendimiento,
-    logoUrl: emprendimiento.logoUrl ?? "/images/market-woman.jpg",
+    logoUrl: emprendimiento.logoUrl
+      ? toClientAssetUrl(emprendimiento.logoUrl)
+      : "/images/market-woman.jpg",
     contactEmail: emprendimiento.contactEmail ?? null,
     contactPhone: emprendimiento.contactPhone ?? null,
   }));
@@ -341,6 +151,7 @@ function normalizeDb(rawDb: UrbisDb): UrbisDb {
     if (explicitSpecial !== null) {
       return {
         ...product,
+        imageUrls: product.imageUrls.map((url) => toClientAssetUrl(url)),
         specialPrice: explicitSpecial,
       };
     }
@@ -348,12 +159,14 @@ function normalizeDb(rawDb: UrbisDb): UrbisDb {
     if (!hasExplicitSpecial && topPublishedIds.has(product.id)) {
       return {
         ...product,
+        imageUrls: product.imageUrls.map((url) => toClientAssetUrl(url)),
         specialPrice: Number((product.price * 0.85).toFixed(2)),
       };
     }
 
     return {
       ...product,
+      imageUrls: product.imageUrls.map((url) => toClientAssetUrl(url)),
       specialPrice: null,
     };
   });
@@ -376,53 +189,630 @@ function shouldUseDatabase(): boolean {
   return Boolean(process.env.DATABASE_URL);
 }
 
-async function readLocalDbIfExists(): Promise<UrbisDb | null> {
-  try {
-    await ensureDbFile();
-    const raw = await readFile(DB_PATH, "utf-8");
-    const db = JSON.parse(raw) as UrbisDb;
-    return normalizeDb(db);
-  } catch {
-    return null;
-  }
+function cloneDb(db: UrbisDb): UrbisDb {
+  return JSON.parse(JSON.stringify(db)) as UrbisDb;
 }
 
-async function ensureDbStateRow(): Promise<void> {
-  const existing = await prisma.appState.findUnique({
-    where: { id: "default" },
-    select: { id: true },
-  });
+function primeRelationalCache(db: UrbisDb): void {
+  relationalCache = {
+    db: cloneDb(db),
+    timestamp: Date.now(),
+  };
+}
 
-  if (existing) {
+function parseDate(
+  value: string | null | undefined,
+  fallback: Date | null = null,
+): Date | null {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return fallback;
+  }
+
+  return parsed;
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((entry): entry is string => typeof entry === "string");
+}
+
+function toStringRecord(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+      key,
+      typeof entry === "string" ? entry : String(entry ?? ""),
+    ]),
+  );
+}
+
+async function readRelationalDb(): Promise<UrbisDb> {
+  const [
+    users,
+    conjuntos,
+    conjuntoRequests,
+    emprendimientos,
+    products,
+    reviews,
+    notifications,
+    feedbackMessages,
+  ] = await prisma.$transaction([
+    prisma.userRecord.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.conjuntoRecord.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.conjuntoRequestRecord.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.emprendimientoRecord.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.productRecord.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.reviewRecord.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.notificationRecord.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.feedbackMessageRecord.findMany({ orderBy: { createdAt: "asc" } }),
+  ]);
+
+  return normalizeDb({
+    users: users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      passwordHash: user.passwordHash,
+      role: user.role as UserRole,
+      conjuntoId: user.conjuntoId,
+      avatarUrl: user.avatarUrl,
+      status: user.status as User["status"],
+      acceptedTermsAt: user.acceptedTermsAt?.toISOString() ?? null,
+      createdAt: user.createdAt.toISOString(),
+    })),
+    conjuntos: conjuntos.map((conjunto) => ({
+      id: conjunto.id,
+      name: conjunto.name,
+      slug: conjunto.slug,
+      location: conjunto.location,
+      description: conjunto.description,
+      logoUrl: conjunto.logoUrl,
+      status: conjunto.status as Conjunto["status"],
+      createdBy: conjunto.createdBy,
+      createdAt: conjunto.createdAt.toISOString(),
+    })),
+    conjuntoRequests: conjuntoRequests.map((request) => ({
+      id: request.id,
+      nameRequested: request.nameRequested,
+      location: request.location,
+      description: request.description,
+      logoUrl: request.logoUrl,
+      contactEmail: request.contactEmail,
+      requestedByUserId: request.requestedByUserId,
+      status: request.status as "pending" | "approved" | "rejected",
+      reviewedBy: request.reviewedBy,
+      createdAt: request.createdAt.toISOString(),
+      updatedAt: request.updatedAt.toISOString(),
+    })),
+    emprendimientos: emprendimientos.map((emprendimiento) => ({
+      id: emprendimiento.id,
+      conjuntoId: emprendimiento.conjuntoId,
+      ownerId: emprendimiento.ownerId,
+      name: emprendimiento.name,
+      description: emprendimiento.description,
+      logoUrl: emprendimiento.logoUrl,
+      contactEmail: emprendimiento.contactEmail,
+      contactPhone: emprendimiento.contactPhone,
+      visibility: emprendimiento.visibility as Emprendimiento["visibility"],
+      status: emprendimiento.status as Emprendimiento["status"],
+      createdAt: emprendimiento.createdAt.toISOString(),
+      updatedAt: emprendimiento.updatedAt.toISOString(),
+    })),
+    products: products.map((product) => ({
+      id: product.id,
+      emprendimientoId: product.emprendimientoId,
+      ownerId: product.ownerId,
+      name: product.name,
+      slug: product.slug,
+      description: product.description,
+      price: product.price,
+      specialPrice: product.specialPrice,
+      category: product.category,
+      stock: product.stock,
+      imageUrls: toStringArray(product.imageUrls),
+      status: product.status as Producto["status"],
+      viewCount: product.viewCount,
+      createdAt: product.createdAt.toISOString(),
+      updatedAt: product.updatedAt.toISOString(),
+    })),
+    reviews: reviews.map((review) => ({
+      id: review.id,
+      productId: review.productId,
+      authorId: review.authorId,
+      rating: review.rating,
+      comment: review.comment,
+      status: review.status as "visible" | "hidden",
+      createdAt: review.createdAt.toISOString(),
+    })),
+    notifications: notifications.map((notification) => ({
+      id: notification.id,
+      userId: notification.userId,
+      type: notification.type,
+      channel: notification.channel as "email" | "in_app",
+      status: notification.status as "queued" | "sent" | "read" | "failed",
+      metadata: toStringRecord(notification.metadata),
+      createdAt: notification.createdAt.toISOString(),
+    })),
+    feedbackMessages: feedbackMessages.map((feedback) => ({
+      id: feedback.id,
+      name: feedback.name,
+      email: feedback.email,
+      message: feedback.message,
+      category: feedback.category as "mejora" | "apoyo",
+      status: feedback.status as "new" | "reviewed",
+      createdAt: feedback.createdAt.toISOString(),
+    })),
+  });
+}
+
+async function replaceRelationalDb(nextDb: UrbisDb): Promise<void> {
+  const db = normalizeDb(cloneDb(nextDb));
+  const requiredSeed = createSeedDb();
+
+  if (db.users.length === 0) {
+    db.users = requiredSeed.users;
+  }
+
+  const userIds = new Set(db.users.map((user) => user.id));
+
+  db.conjuntos = db.conjuntos.filter((conjunto) => userIds.has(conjunto.createdBy));
+  const conjuntoIds = new Set(db.conjuntos.map((conjunto) => conjunto.id));
+
+  db.conjuntoRequests = db.conjuntoRequests.map((request) => ({
+    ...request,
+    requestedByUserId:
+      request.requestedByUserId && userIds.has(request.requestedByUserId)
+        ? request.requestedByUserId
+        : null,
+    reviewedBy:
+      request.reviewedBy && userIds.has(request.reviewedBy)
+        ? request.reviewedBy
+        : null,
+  }));
+
+  db.emprendimientos = db.emprendimientos.filter(
+    (emprendimiento) =>
+      userIds.has(emprendimiento.ownerId) &&
+      conjuntoIds.has(emprendimiento.conjuntoId),
+  );
+  const emprendimientoIds = new Set(db.emprendimientos.map((entry) => entry.id));
+
+  db.products = db.products.filter(
+    (product) =>
+      userIds.has(product.ownerId) &&
+      emprendimientoIds.has(product.emprendimientoId),
+  );
+  const productIds = new Set(db.products.map((product) => product.id));
+
+  db.reviews = db.reviews.filter(
+    (review) => userIds.has(review.authorId) && productIds.has(review.productId),
+  );
+  db.notifications = db.notifications.filter((notification) =>
+    userIds.has(notification.userId),
+  );
+
+  await prisma.$transaction(async (tx) => {
+    const [
+      preservedProfiles,
+      preservedPreferences,
+      preservedAnnouncements,
+      preservedAnnouncementDeliveries,
+      preservedProductInterests,
+      preservedProductVisits,
+      preservedEmprendimientoVisits,
+      preservedFavorites,
+      preservedFollows,
+    ] = await Promise.all([
+      tx.entrepreneurProfileRecord.findMany(),
+      tx.notificationPreferenceRecord.findMany(),
+      tx.announcementRecord.findMany(),
+      tx.announcementDeliveryRecord.findMany(),
+      tx.productInterestRecord.findMany(),
+      tx.userProductVisitRecord.findMany(),
+      tx.emprendimientoVisitRecord.findMany(),
+      tx.userFavoriteProductRecord.findMany(),
+      tx.emprendimientoFollowRecord.findMany(),
+    ]);
+
+    await tx.reviewRecord.deleteMany();
+    await tx.productRecord.deleteMany();
+    await tx.emprendimientoRecord.deleteMany();
+    await tx.conjuntoRequestRecord.deleteMany();
+    await tx.notificationRecord.deleteMany();
+    await tx.feedbackMessageRecord.deleteMany();
+    await tx.conjuntoRecord.deleteMany();
+    await tx.userRecord.deleteMany();
+
+    if (db.users.length > 0) {
+      await tx.userRecord.createMany({
+        data: db.users.map((user) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          passwordHash: user.passwordHash,
+          role: user.role,
+          conjuntoId: user.conjuntoId,
+          avatarUrl: user.avatarUrl,
+          status: user.status,
+          acceptedTermsAt: parseDate(user.acceptedTermsAt),
+          createdAt: parseDate(user.createdAt, new Date())!,
+        })),
+      });
+    }
+
+    if (db.conjuntos.length > 0) {
+      await tx.conjuntoRecord.createMany({
+        data: db.conjuntos.map((conjunto) => ({
+          id: conjunto.id,
+          name: conjunto.name,
+          slug: conjunto.slug,
+          location: conjunto.location,
+          description: conjunto.description,
+          logoUrl: conjunto.logoUrl,
+          status: conjunto.status,
+          createdBy: conjunto.createdBy,
+          createdAt: parseDate(conjunto.createdAt, new Date())!,
+        })),
+      });
+    }
+
+    if (db.conjuntoRequests.length > 0) {
+      await tx.conjuntoRequestRecord.createMany({
+        data: db.conjuntoRequests.map((request) => ({
+          id: request.id,
+          nameRequested: request.nameRequested,
+          location: request.location,
+          description: request.description,
+          logoUrl: request.logoUrl,
+          contactEmail: request.contactEmail,
+          requestedByUserId: request.requestedByUserId,
+          status: request.status,
+          reviewedBy: request.reviewedBy,
+          createdAt: parseDate(request.createdAt, new Date())!,
+          updatedAt: parseDate(request.updatedAt, new Date())!,
+        })),
+      });
+    }
+
+    if (db.emprendimientos.length > 0) {
+      await tx.emprendimientoRecord.createMany({
+        data: db.emprendimientos.map((emprendimiento) => ({
+          id: emprendimiento.id,
+          conjuntoId: emprendimiento.conjuntoId,
+          ownerId: emprendimiento.ownerId,
+          name: emprendimiento.name,
+          description: emprendimiento.description,
+          logoUrl: emprendimiento.logoUrl,
+          contactEmail: emprendimiento.contactEmail,
+          contactPhone: emprendimiento.contactPhone,
+          visibility: emprendimiento.visibility,
+          status: emprendimiento.status,
+          createdAt: parseDate(emprendimiento.createdAt, new Date())!,
+          updatedAt: parseDate(emprendimiento.updatedAt, new Date())!,
+        })),
+      });
+    }
+
+    if (db.products.length > 0) {
+      await tx.productRecord.createMany({
+        data: db.products.map((product) => ({
+          id: product.id,
+          emprendimientoId: product.emprendimientoId,
+          ownerId: product.ownerId,
+          name: product.name,
+          slug: product.slug,
+          description: product.description,
+          price: product.price,
+          specialPrice: product.specialPrice,
+          category: product.category,
+          stock: product.stock,
+          imageUrls: product.imageUrls as unknown as Prisma.InputJsonValue,
+          status: product.status,
+          viewCount: product.viewCount,
+          createdAt: parseDate(product.createdAt, new Date())!,
+          updatedAt: parseDate(product.updatedAt, new Date())!,
+        })),
+      });
+    }
+
+    if (db.reviews.length > 0) {
+      await tx.reviewRecord.createMany({
+        data: db.reviews.map((review) => ({
+          id: review.id,
+          productId: review.productId,
+          authorId: review.authorId,
+          rating: review.rating,
+          comment: review.comment,
+          status: review.status,
+          createdAt: parseDate(review.createdAt, new Date())!,
+        })),
+      });
+    }
+
+    if (db.notifications.length > 0) {
+      await tx.notificationRecord.createMany({
+        data: db.notifications.map((notification) => ({
+          id: notification.id,
+          userId: notification.userId,
+          type: notification.type,
+          channel: notification.channel,
+          status: notification.status,
+          metadata: notification.metadata as unknown as Prisma.InputJsonValue,
+          createdAt: parseDate(notification.createdAt, new Date())!,
+        })),
+      });
+    }
+
+    if (db.feedbackMessages.length > 0) {
+      await tx.feedbackMessageRecord.createMany({
+        data: db.feedbackMessages.map((entry) => ({
+          id: entry.id,
+          name: entry.name,
+          email: entry.email,
+          message: entry.message,
+          category: entry.category,
+          status: entry.status,
+          createdAt: parseDate(entry.createdAt, new Date())!,
+        })),
+      });
+    }
+
+    const validUserIds = new Set(db.users.map((entry) => entry.id));
+    const validConjuntoIds = new Set(db.conjuntos.map((entry) => entry.id));
+    const validEmprendimientoIds = new Set(db.emprendimientos.map((entry) => entry.id));
+    const validProductIds = new Set(db.products.map((entry) => entry.id));
+
+    const profilesToRestore = preservedProfiles.filter(
+      (entry) =>
+        validUserIds.has(entry.userId) &&
+        (!entry.defaultConjuntoId || validConjuntoIds.has(entry.defaultConjuntoId)),
+    );
+    if (profilesToRestore.length > 0) {
+      await tx.entrepreneurProfileRecord.createMany({
+        data: profilesToRestore.map((entry) => ({
+          userId: entry.userId,
+          displayName: entry.displayName,
+          bio: entry.bio,
+          isIndependent: entry.isIndependent,
+          defaultConjuntoId: entry.defaultConjuntoId,
+          approvalStatus: entry.approvalStatus,
+          createdAt: entry.createdAt,
+          updatedAt: entry.updatedAt,
+        })),
+      });
+    }
+
+    const preferencesToRestore = preservedPreferences.filter((entry) =>
+      validUserIds.has(entry.userId),
+    );
+    if (preferencesToRestore.length > 0) {
+      await tx.notificationPreferenceRecord.createMany({
+        data: preferencesToRestore.map((entry) => ({
+          userId: entry.userId,
+          wantsProductNotifications: entry.wantsProductNotifications,
+          wantsAnnouncementNotifications: entry.wantsAnnouncementNotifications,
+          wantsPersonalizedRecommendations: entry.wantsPersonalizedRecommendations,
+          wantsEmail: entry.wantsEmail,
+          wantsPush: entry.wantsPush,
+          productNotificationFrequency: entry.productNotificationFrequency,
+          askedAt: entry.askedAt,
+          respondedAt: entry.respondedAt,
+          createdAt: entry.createdAt,
+          updatedAt: entry.updatedAt,
+        })),
+      });
+    }
+
+    const announcementsToRestore = preservedAnnouncements.filter(
+      (entry) =>
+        validUserIds.has(entry.createdBy) &&
+        (!entry.targetConjuntoId || validConjuntoIds.has(entry.targetConjuntoId)) &&
+        (!entry.targetEmprendimientoId ||
+          validEmprendimientoIds.has(entry.targetEmprendimientoId)),
+    );
+    if (announcementsToRestore.length > 0) {
+      await tx.announcementRecord.createMany({
+        data: announcementsToRestore.map((entry) => ({
+          id: entry.id,
+          title: entry.title,
+          body: entry.body,
+          createdBy: entry.createdBy,
+          status: entry.status,
+          audienceType: entry.audienceType,
+          targetRole: entry.targetRole,
+          targetConjuntoId: entry.targetConjuntoId,
+          targetEmprendimientoId: entry.targetEmprendimientoId,
+          scheduledAt: entry.scheduledAt,
+          sentAt: entry.sentAt,
+          createdAt: entry.createdAt,
+          updatedAt: entry.updatedAt,
+        })),
+      });
+    }
+
+    const validAnnouncementIds = new Set(
+      announcementsToRestore.map((entry) => entry.id),
+    );
+    const deliveriesToRestore = preservedAnnouncementDeliveries.filter(
+      (entry) =>
+        validAnnouncementIds.has(entry.announcementId) &&
+        validUserIds.has(entry.userId),
+    );
+    if (deliveriesToRestore.length > 0) {
+      await tx.announcementDeliveryRecord.createMany({
+        data: deliveriesToRestore.map((entry) => ({
+          id: entry.id,
+          announcementId: entry.announcementId,
+          userId: entry.userId,
+          channel: entry.channel,
+          status: entry.status,
+          errorMessage: entry.errorMessage,
+          sentAt: entry.sentAt,
+          readAt: entry.readAt,
+          clickedAt: entry.clickedAt,
+          createdAt: entry.createdAt,
+        })),
+      });
+    }
+
+    const interestsToRestore = preservedProductInterests.filter(
+      (entry) =>
+        validUserIds.has(entry.userId) &&
+        (!entry.productId || validProductIds.has(entry.productId)),
+    );
+    if (interestsToRestore.length > 0) {
+      await tx.productInterestRecord.createMany({
+        data: interestsToRestore.map((entry) => ({
+          id: entry.id,
+          userId: entry.userId,
+          productId: entry.productId,
+          category: entry.category,
+          tag: entry.tag,
+          weight: entry.weight,
+          source: entry.source,
+          lastInteractedAt: entry.lastInteractedAt,
+          createdAt: entry.createdAt,
+          updatedAt: entry.updatedAt,
+        })),
+      });
+    }
+
+    const productVisitsToRestore = preservedProductVisits.filter(
+      (entry) =>
+        validProductIds.has(entry.productId) &&
+        validEmprendimientoIds.has(entry.emprendimientoId) &&
+        (!entry.userId || validUserIds.has(entry.userId)),
+    );
+    if (productVisitsToRestore.length > 0) {
+      await tx.userProductVisitRecord.createMany({
+        data: productVisitsToRestore.map((entry) => ({
+          id: entry.id,
+          userId: entry.userId,
+          productId: entry.productId,
+          emprendimientoId: entry.emprendimientoId,
+          sessionId: entry.sessionId,
+          referrer: entry.referrer,
+          dwellSeconds: entry.dwellSeconds,
+          visitedAt: entry.visitedAt,
+        })),
+      });
+    }
+
+    const emprendimientoVisitsToRestore = preservedEmprendimientoVisits.filter(
+      (entry) =>
+        validEmprendimientoIds.has(entry.emprendimientoId) &&
+        (!entry.userId || validUserIds.has(entry.userId)),
+    );
+    if (emprendimientoVisitsToRestore.length > 0) {
+      await tx.emprendimientoVisitRecord.createMany({
+        data: emprendimientoVisitsToRestore.map((entry) => ({
+          id: entry.id,
+          userId: entry.userId,
+          emprendimientoId: entry.emprendimientoId,
+          sessionId: entry.sessionId,
+          referrer: entry.referrer,
+          visitedAt: entry.visitedAt,
+        })),
+      });
+    }
+
+    const favoritesToRestore = preservedFavorites.filter(
+      (entry) =>
+        validUserIds.has(entry.userId) && validProductIds.has(entry.productId),
+    );
+    if (favoritesToRestore.length > 0) {
+      await tx.userFavoriteProductRecord.createMany({
+        data: favoritesToRestore.map((entry) => ({
+          userId: entry.userId,
+          productId: entry.productId,
+          createdAt: entry.createdAt,
+        })),
+      });
+    }
+
+    const followsToRestore = preservedFollows.filter(
+      (entry) =>
+        validUserIds.has(entry.userId) &&
+        validEmprendimientoIds.has(entry.emprendimientoId),
+    );
+    if (followsToRestore.length > 0) {
+      await tx.emprendimientoFollowRecord.createMany({
+        data: followsToRestore.map((entry) => ({
+          userId: entry.userId,
+          emprendimientoId: entry.emprendimientoId,
+          notifyNewProducts: entry.notifyNewProducts,
+          createdAt: entry.createdAt,
+          updatedAt: entry.updatedAt,
+        })),
+      });
+    }
+  }, {
+    maxWait: 10_000,
+    timeout: 60_000,
+  });
+}
+
+async function ensureRelationalDbSeeded(): Promise<void> {
+  if (relationalSeedChecked) {
     return;
   }
 
-  const localDb = await readLocalDbIfExists();
-  const seed = localDb ?? createSeedDb();
+  const counts = await prisma.$transaction([
+    prisma.userRecord.count(),
+    prisma.conjuntoRecord.count(),
+    prisma.conjuntoRequestRecord.count(),
+    prisma.emprendimientoRecord.count(),
+    prisma.productRecord.count(),
+    prisma.reviewRecord.count(),
+    prisma.notificationRecord.count(),
+    prisma.feedbackMessageRecord.count(),
+  ]);
 
-  await prisma.appState.create({
-    data: {
-      id: "default",
-      data: seed as Prisma.InputJsonValue,
-    },
-  });
+  const hasAnyData = counts.some((count) => count > 0);
+  if (hasAnyData) {
+    relationalSeedChecked = true;
+    return;
+  }
+
+  const seed = createSeedDb();
+  await replaceRelationalDb(seed);
+  primeRelationalCache(normalizeDb(cloneDb(seed)));
+  relationalSeedChecked = true;
 }
 
 export async function readDb(): Promise<UrbisDb> {
   if (shouldUseDatabase()) {
-    await ensureDbStateRow();
+    await ensureRelationalDbSeeded();
 
-    const row = await prisma.appState.findUnique({
-      where: { id: "default" },
-      select: { data: true },
-    });
-
-    if (!row) {
-      return normalizeDb(createSeedDb());
+    if (relationalCache && Date.now() - relationalCache.timestamp <= RELATIONAL_CACHE_TTL_MS) {
+      return cloneDb(relationalCache.db);
     }
 
-    const db = row.data as unknown as UrbisDb;
-    return normalizeDb(db);
+    if (relationalReadPromise) {
+      return cloneDb(await relationalReadPromise);
+    }
+
+    relationalReadPromise = readRelationalDb()
+      .then((db) => {
+        primeRelationalCache(db);
+        return db;
+      })
+      .finally(() => {
+        relationalReadPromise = null;
+      });
+
+    return cloneDb(await relationalReadPromise);
   }
 
   await ensureDbFile();
@@ -433,11 +823,10 @@ export async function readDb(): Promise<UrbisDb> {
 
 export async function writeDb(db: UrbisDb): Promise<void> {
   if (shouldUseDatabase()) {
-    await prisma.appState.upsert({
-      where: { id: "default" },
-      update: { data: db as Prisma.InputJsonValue },
-      create: { id: "default", data: db as Prisma.InputJsonValue },
-    });
+    await ensureRelationalDbSeeded();
+    await replaceRelationalDb(db);
+    primeRelationalCache(normalizeDb(cloneDb(db)));
+    relationalSeedChecked = true;
     return;
   }
 
@@ -492,6 +881,29 @@ export async function getSessionUser(request: NextRequest): Promise<User | null>
   const userId = request.cookies.get(SESSION_COOKIE)?.value;
   if (!userId) {
     return null;
+  }
+
+  if (shouldUseDatabase()) {
+    const user = await prisma.userRecord.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || user.status !== "active") {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      passwordHash: user.passwordHash,
+      role: user.role as UserRole,
+      conjuntoId: user.conjuntoId,
+      avatarUrl: user.avatarUrl,
+      status: user.status as User["status"],
+      acceptedTermsAt: user.acceptedTermsAt?.toISOString() ?? null,
+      createdAt: user.createdAt.toISOString(),
+    };
   }
 
   const db = await readDb();
