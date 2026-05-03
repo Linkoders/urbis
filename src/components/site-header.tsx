@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BellIcon } from "@/components/ui-icons";
 
 interface SessionData {
@@ -11,28 +11,79 @@ interface SessionData {
   user?: {
     id: string;
     name: string;
+    email: string;
+    phone: string | null;
     role: "resident" | "admin_conjunto" | "superadmin";
     conjuntoId: string | null;
     avatarUrl: string | null;
+    emailVerifiedAt: string | null;
   };
 }
 
 interface HeaderNotification {
   id: string;
+  type: string;
   message: string;
   status: "queued" | "sent" | "read";
   createdAt: string;
+  metadata?: Record<string, string>;
+}
+
+function roleLabel(role?: "resident" | "admin_conjunto" | "superadmin"): string {
+  if (role === "superadmin") {
+    return "Superadmin";
+  }
+  if (role === "admin_conjunto") {
+    return "Admin conjunto";
+  }
+  if (role === "resident") {
+    return "Residente";
+  }
+  return "Usuario";
+}
+
+function notificationLink(notification: HeaderNotification): string | null {
+  if (notification.metadata?.productSlug) {
+    return `/productos/${notification.metadata.productSlug}`;
+  }
+
+  if (notification.metadata?.productId) {
+    return `/productos/${notification.metadata.productId}`;
+  }
+
+  if (notification.metadata?.emprendimientoId) {
+    return `/panel/emprendimientos/${notification.metadata.emprendimientoId}`;
+  }
+
+  if (notification.metadata?.conjuntoId) {
+    return `/panel/conjuntos/${notification.metadata.conjuntoId}`;
+  }
+
+  if (notification.type.includes("emprendimiento")) {
+    return "/panel";
+  }
+
+  if (notification.type.includes("conjunto")) {
+    return "/panel";
+  }
+
+  return null;
 }
 
 export function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
+  const notificationsRef = useRef<HTMLDivElement | null>(null);
+
   const [session, setSession] = useState<SessionData>({ authenticated: false });
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<HeaderNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
+  const profileRole = useMemo(() => roleLabel(session.user?.role), [session.user?.role]);
 
   useEffect(() => {
     let mounted = true;
@@ -79,6 +130,37 @@ export function SiteHeader() {
     };
   }, [pathname]);
 
+  useEffect(() => {
+    if (!notificationsOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      const root = notificationsRef.current;
+      if (!root) {
+        return;
+      }
+
+      if (!root.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setNotificationsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [notificationsOpen]);
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     setSession({ authenticated: false });
@@ -87,18 +169,24 @@ export function SiteHeader() {
     router.refresh();
   }
 
+  async function callNotificationsAction(action: string, notificationId?: string) {
+    const response = await fetch("/api/platform/notifications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, notificationId }),
+    });
+
+    return response.ok;
+  }
+
   async function markAllNotificationsRead() {
     if (!session.authenticated || unreadCount === 0) {
       return;
     }
 
-    const response = await fetch("/api/platform/notifications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "mark_all_read" }),
-    });
-
-    if (response.ok) {
+    setNotificationsLoading(true);
+    const ok = await callNotificationsAction("mark_all_read");
+    if (ok) {
       setUnreadCount(0);
       setNotifications((prev) =>
         prev.map((entry) => ({
@@ -106,6 +194,48 @@ export function SiteHeader() {
           status: "sent",
         })),
       );
+    }
+    setNotificationsLoading(false);
+  }
+
+  async function clearReadNotifications() {
+    setNotificationsLoading(true);
+    const ok = await callNotificationsAction("delete_read");
+    if (ok) {
+      setNotifications((prev) => prev.filter((entry) => entry.status === "queued"));
+    }
+    setNotificationsLoading(false);
+  }
+
+  async function deleteNotification(notificationId: string) {
+    const ok = await callNotificationsAction("delete_one", notificationId);
+    if (!ok) {
+      return;
+    }
+
+    setNotifications((prev) => prev.filter((entry) => entry.id !== notificationId));
+  }
+
+  async function openNotification(notification: HeaderNotification) {
+    if (notification.status === "queued") {
+      await callNotificationsAction("mark_read", notification.id);
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      setNotifications((prev) =>
+        prev.map((entry) =>
+          entry.id === notification.id
+            ? {
+                ...entry,
+                status: "sent",
+              }
+            : entry,
+        ),
+      );
+    }
+
+    const href = notificationLink(notification);
+    setNotificationsOpen(false);
+    if (href) {
+      router.push(href);
     }
   }
 
@@ -116,11 +246,11 @@ export function SiteHeader() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-sm">
-      <div className="mx-auto flex h-20 max-w-[1320px] items-center justify-between px-6 lg:px-12">
+      <div className="mx-auto flex h-20 max-w-[1320px] items-center justify-between gap-3 px-6 lg:px-12">
         <Link
           href="/"
           onClick={() => setMobileOpen(false)}
-          className="flex items-center gap-3 text-white"
+          className="flex shrink-0 items-center gap-3 text-white"
         >
           <Image src="/images/urbis-logo.svg" alt="Urbis" width={34} height={34} className="h-8 w-8" />
           <span className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-wide">
@@ -128,7 +258,7 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-8 text-xs uppercase tracking-[0.2em] text-zinc-300 md:flex">
+        <nav className="hidden min-w-0 flex-1 items-center justify-center gap-6 text-[11px] uppercase tracking-[0.17em] text-zinc-300 md:flex">
           <Link href="/" className="transition hover:text-white">
             Inicio
           </Link>
@@ -145,6 +275,11 @@ export function SiteHeader() {
               Reportes
             </Link>
           ) : null}
+          {session.authenticated ? (
+            <Link href="/panel/perfil" className="transition hover:text-white">
+              Mi perfil
+            </Link>
+          ) : null}
           {session.authenticated && session.user?.role === "resident" ? (
             <Link href="/panel" className="transition hover:text-white">
               Gestionar emprendimientos
@@ -155,19 +290,11 @@ export function SiteHeader() {
               Gestión de comunidad
             </Link>
           ) : null}
-          <a
-            href="https://linekoders.com/"
-            target="_blank"
-            rel="noreferrer"
-            className="transition hover:text-white"
-          >
-            Linekoders
-          </a>
         </nav>
 
-        <div className="hidden gap-3 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
           {session.authenticated ? (
-            <div className="relative">
+            <div className="relative" ref={notificationsRef}>
               <button
                 type="button"
                 onClick={() => setNotificationsOpen((prev) => !prev)}
@@ -181,24 +308,56 @@ export function SiteHeader() {
                 ) : null}
               </button>
               {notificationsOpen ? (
-                <div className="absolute right-0 mt-2 w-96 border border-white/15 bg-[#0b1016] p-3 shadow-2xl">
-                  <div className="mb-3 flex items-center justify-between">
+                <div className="absolute right-0 mt-2 w-[420px] border border-white/15 bg-[#0b1016] p-3 shadow-2xl">
+                  <div className="mb-3 flex items-center justify-between gap-2">
                     <p className="text-xs uppercase tracking-[0.14em] text-zinc-300">Notificaciones</p>
-                    <button
-                      type="button"
-                      onClick={() => void markAllNotificationsRead()}
-                      className="text-[10px] uppercase tracking-[0.12em] text-emerald-300 hover:text-emerald-200"
-                    >
-                      Marcar leídas
-                    </button>
+                    <div className="flex gap-3 text-[10px] uppercase tracking-[0.12em]">
+                      <button
+                        type="button"
+                        onClick={() => void markAllNotificationsRead()}
+                        disabled={notificationsLoading}
+                        className="text-emerald-300 hover:text-emerald-200 disabled:opacity-60"
+                      >
+                        Marcar leídas
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void clearReadNotifications()}
+                        disabled={notificationsLoading}
+                        className="text-zinc-300 hover:text-white disabled:opacity-60"
+                      >
+                        Limpiar leídas
+                      </button>
+                    </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="max-h-96 space-y-2 overflow-auto pr-1">
                     {notifications.length === 0 ? (
                       <p className="text-sm text-zinc-400">No tienes notificaciones.</p>
                     ) : (
                       notifications.map((notification) => (
-                        <article key={notification.id} className="border border-white/10 bg-black/25 p-2">
-                          <p className="text-sm text-zinc-200">{notification.message}</p>
+                        <article
+                          key={notification.id}
+                          className={`border p-2 ${notification.status === "queued" ? "border-emerald-300/30 bg-emerald-300/5" : "border-white/10 bg-black/25"}`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => void openNotification(notification)}
+                            className="w-full text-left"
+                          >
+                            <p className="text-sm text-zinc-200">{notification.message}</p>
+                            <p className="mt-1 text-[11px] text-zinc-400">
+                              {new Date(notification.createdAt).toLocaleString("es-EC")}
+                            </p>
+                          </button>
+                          <div className="mt-2 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => void deleteNotification(notification.id)}
+                              className="text-[10px] uppercase tracking-[0.12em] text-red-300 hover:text-red-200"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
                         </article>
                       ))
                     )}
@@ -213,10 +372,15 @@ export function SiteHeader() {
             <>
               <div className="flex items-center gap-2 border border-white/15 bg-black/30 px-2 py-1">
                 <div
-                  className="h-7 w-7 rounded-full border border-white/20 bg-cover bg-center"
+                  className="h-8 w-8 rounded-full border border-white/20 bg-cover bg-center"
                   style={{ backgroundImage: `url(${session.user?.avatarUrl || "/images/owner-1.jpg"})` }}
                 />
-                <span className="max-w-24 truncate text-xs text-zinc-200">{session.user?.name}</span>
+                <div className="max-w-36">
+                  <span className="block truncate text-xs text-zinc-100">{session.user?.name}</span>
+                  <span className="block text-[10px] uppercase tracking-[0.12em] text-emerald-300">
+                    Perfil: {profileRole}
+                  </span>
+                </div>
               </div>
               <button
                 type="button"
@@ -277,13 +441,15 @@ export function SiteHeader() {
               </Link>
             ) : null}
             {session.authenticated ? (
+              <Link href="/panel/perfil" className="hover:text-white" onClick={() => setMobileOpen(false)}>
+                Mi perfil
+              </Link>
+            ) : null}
+            {session.authenticated ? (
               <Link href="/panel" className="hover:text-white" onClick={() => setMobileOpen(false)}>
                 Mi panel
               </Link>
             ) : null}
-            <a href="https://linekoders.com/" target="_blank" rel="noreferrer" className="hover:text-white">
-              Linekoders
-            </a>
           </nav>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -294,18 +460,16 @@ export function SiteHeader() {
                     className="h-8 w-8 rounded-full border border-white/20 bg-cover bg-center"
                     style={{ backgroundImage: `url(${session.user?.avatarUrl || "/images/owner-1.jpg"})` }}
                   />
-                  <p className="text-xs uppercase tracking-[0.12em] text-zinc-300">{session.user?.name}</p>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.12em] text-zinc-200">{session.user?.name}</p>
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-emerald-300">
+                      Perfil: {profileRole}
+                    </p>
+                  </div>
                 </div>
                 <p className="w-full text-xs uppercase tracking-[0.14em] text-zinc-400">
                   Notificaciones pendientes: {unreadCount}
                 </p>
-                <Link
-                  href="/panel"
-                  onClick={() => setMobileOpen(false)}
-                  className="border border-white/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white"
-                >
-                  Abrir panel
-                </Link>
                 <button
                   type="button"
                   onClick={() => void logout()}

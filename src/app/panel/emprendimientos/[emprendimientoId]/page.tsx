@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FullScreenSpinner } from "@/components/spinner";
@@ -45,11 +45,9 @@ interface ProductCard {
   category: string;
   stock: number | null;
   image: string;
-  imageUrls: string[];
   imageCount: number;
   status: string;
   viewCount: number;
-  ownerId: string;
 }
 
 async function callAction(action: string, data: Record<string, unknown>) {
@@ -61,14 +59,15 @@ async function callAction(action: string, data: Record<string, unknown>) {
 
   const result = (await response.json()) as { message?: string; error?: string };
   if (!response.ok) {
-    throw new Error(result.error ?? "No se pudo ejecutar la accion.");
+    throw new Error(result.error ?? "No se pudo ejecutar la acción.");
   }
 
-  return result.message ?? "Operacion completada.";
+  return result.message ?? "Operación completada.";
 }
 
 export default function EmprendimientoProductsPage() {
   const params = useParams<{ emprendimientoId: string }>();
+  const router = useRouter();
   const emprendimientoId = String(params?.emprendimientoId ?? "");
 
   const [loading, setLoading] = useState(true);
@@ -233,12 +232,6 @@ export default function EmprendimientoProductsPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/panel"
-              className="border border-white/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] hover:border-white"
-            >
-              Volver
-            </Link>
             {canCreateProduct ? (
               <Link
                 href={`/panel/emprendimientos/${emprendimiento.id}/productos/nuevo`}
@@ -254,34 +247,32 @@ export default function EmprendimientoProductsPage() {
               Editar emprendimiento
             </Link>
             {canModerateStatus ? (
-              <>
-                {emprendimiento.status !== "approved" ? (
-                  <button
-                    type="button"
-                    onClick={() => void processEmprendimientoStatus("approved")}
-                    className="border border-emerald-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-200 hover:bg-emerald-500/10"
-                  >
-                    Aprobar
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => void processEmprendimientoStatus("suspended")}
-                    className="border border-amber-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-200 hover:bg-amber-500/10"
-                  >
-                    Suspender
-                  </button>
-                )}
-                {emprendimiento.status !== "rejected" ? (
-                  <button
-                    type="button"
-                    onClick={() => void processEmprendimientoStatus("rejected")}
-                    className="border border-red-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-red-200 hover:bg-red-500/10"
-                  >
-                    Rechazar
-                  </button>
-                ) : null}
-              </>
+              emprendimiento.status !== "approved" ? (
+                <button
+                  type="button"
+                  onClick={() => void processEmprendimientoStatus("approved")}
+                  className="border border-emerald-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-200 hover:bg-emerald-500/10"
+                >
+                  Aprobar
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void processEmprendimientoStatus("suspended")}
+                  className="border border-amber-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-200 hover:bg-amber-500/10"
+                >
+                  Suspender
+                </button>
+              )
+            ) : null}
+            {canModerateStatus && emprendimiento.status !== "rejected" ? (
+              <button
+                type="button"
+                onClick={() => void processEmprendimientoStatus("rejected")}
+                className="border border-red-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-red-200 hover:bg-red-500/10"
+              >
+                Rechazar
+              </button>
             ) : null}
             <button
               type="button"
@@ -296,6 +287,12 @@ export default function EmprendimientoProductsPage() {
             >
               Eliminar emprendimiento
             </button>
+            <Link
+              href="/panel"
+              className="border border-white/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] hover:border-white"
+            >
+              Volver
+            </Link>
           </div>
         </header>
 
@@ -308,7 +305,7 @@ export default function EmprendimientoProductsPage() {
             <p className="mt-2 text-zinc-300">{emprendimiento.description}</p>
             {user.role === "resident" && emprendimiento.status !== "approved" ? (
               <p className="mt-3 text-sm text-amber-300">
-                Cuando el emprendimiento este aprobado podras agregar productos.
+                Cuando el emprendimiento esté aprobado podrás agregar productos.
               </p>
             ) : null}
           </div>
@@ -321,7 +318,11 @@ export default function EmprendimientoProductsPage() {
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((product, index) => (
-            <article key={product.id} className="overflow-hidden border border-white/10 bg-black/25">
+            <article
+              key={product.id}
+              onClick={() => router.push(`/productos/${product.slug}`)}
+              className="cursor-pointer overflow-hidden border border-white/10 bg-black/25 transition hover:border-emerald-300/60"
+            >
               <div className="relative h-48">
                 <Image
                   src={product.image}
@@ -348,26 +349,22 @@ export default function EmprendimientoProductsPage() {
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
-                    href={`/productos/${product.slug}`}
-                    className="border border-white/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] hover:border-white"
-                  >
-                    Ver detalle
-                  </Link>
-                  <Link
                     href={`/panel/emprendimientos/${emprendimiento.id}/productos/${product.id}/editar`}
+                    onClick={(event) => event.stopPropagation()}
                     className="border border-white/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] hover:border-white"
                   >
                     Editar
                   </Link>
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={(event) => {
+                      event.stopPropagation();
                       setConfirmDelete({
                         kind: "producto",
                         id: product.id,
                         name: product.name,
-                      })
-                    }
+                      });
+                    }}
                     className="border border-red-300 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-red-200 hover:bg-red-500/10"
                   >
                     Eliminar
@@ -383,7 +380,7 @@ export default function EmprendimientoProductsPage() {
         title="Seguro que deseas eliminar?"
         description={
           confirmDelete
-            ? `Se eliminara "${confirmDelete.name}" y su informacion relacionada.`
+            ? `Se eliminará "${confirmDelete.name}" y su información relacionada.`
             : ""
         }
         loading={confirmLoading}

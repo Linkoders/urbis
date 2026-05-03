@@ -46,11 +46,18 @@ model UserRecord {
   id                     String                 @id
   name                   String
   email                  String                 @unique
+  phone                  String?
   passwordHash           String
   role                   String
   conjuntoId             String?
   avatarUrl              String?
   status                 String
+  subscriptionPlan       String                 @default("basic")
+  subscriptionStatus     String                 @default("inactive")
+  subscriptionPaymentMethod String?
+  subscriptionUpdatedAt  DateTime?
+  emailVerifiedAt        DateTime?
+  emailVerificationCode  String?
   acceptedTermsAt        DateTime?
   createdAt              DateTime
   createdConjuntos       ConjuntoRecord[]       @relation("ConjuntoCreatedBy")
@@ -76,6 +83,9 @@ model ConjuntoRecord {
   name            String
   slug            String               @unique
   location        String
+  mapUrl          String?
+  latitude        Float?
+  longitude       Float?
   description     String
   logoUrl         String?
   status          String
@@ -91,6 +101,9 @@ model ConjuntoRequestRecord {
   id                String      @id
   nameRequested     String
   location          String
+  mapUrl            String?
+  latitude          Float?
+  longitude         Float?
   description       String
   logoUrl           String?
   contactEmail      String

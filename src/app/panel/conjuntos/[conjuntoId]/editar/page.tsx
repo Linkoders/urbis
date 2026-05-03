@@ -17,6 +17,9 @@ interface ConjuntoData {
   name: string;
   slug: string;
   location: string;
+  mapUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
   description: string;
   logoUrl: string | null;
   status: "pending" | "approved" | "rejected" | "suspended";
@@ -34,6 +37,7 @@ export default function EditConjuntoPage() {
 
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
+  const [mapUrl, setMapUrl] = useState("");
   const [description, setDescription] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -63,6 +67,7 @@ export default function EditConjuntoPage() {
       setUser(data.user);
       setName(data.conjunto.name);
       setLocation(data.conjunto.location);
+      setMapUrl(data.conjunto.mapUrl ?? "");
       setDescription(data.conjunto.description ?? "");
       setLogoUrl(data.conjunto.logoUrl ?? "");
       setLogoPreview(data.conjunto.logoUrl ?? "/images/owner-1.jpg");
@@ -99,6 +104,7 @@ export default function EditConjuntoPage() {
           conjuntoId,
           name,
           location,
+          mapUrl,
           description,
           logoUrl: finalLogoUrl,
           status,
@@ -159,6 +165,13 @@ export default function EditConjuntoPage() {
             value={location}
             onChange={(event) => setLocation(event.target.value)}
             placeholder="Ubicación"
+            className="w-full border border-white/20 bg-black/40 px-4 py-3"
+            required
+          />
+          <input
+            value={mapUrl}
+            onChange={(event) => setMapUrl(event.target.value)}
+            placeholder="Enlace completo de Google Maps"
             className="w-full border border-white/20 bg-black/40 px-4 py-3"
             required
           />

@@ -10,10 +10,12 @@ import {
 } from "@/lib/urbis-store";
 import { sendEmailNotification } from "@/lib/email-service";
 import { prisma } from "@/lib/prisma";
-import type { ProductStatus, Visibility } from "@/lib/urbis-types";
+import { parseGoogleMapsLocation } from "@/lib/google-maps";
+import type { Emprendimiento, ProductStatus, Visibility } from "@/lib/urbis-types";
 
 export const runtime = "nodejs";
 const MAX_PRODUCT_IMAGES = 5;
+const AI_ADVICE_FREE_LIMIT = 2;
 
 function uniqueSlug(base: string, existing: Set<string>): string {
   let slug = base;
@@ -93,6 +95,9 @@ function ensureIndependentConjunto(
     name: "Emprendedores Independientes",
     slug: "emprendedores-independientes",
     location: "Nacional",
+    mapUrl: null,
+    latitude: null,
+    longitude: null,
     description:
       "Espacio para emprendedores que operan sin asociación inicial a un conjunto específico.",
     logoUrl: "/images/owner-1.jpg",
@@ -199,6 +204,64 @@ async function notifyFollowersAboutNewProduct(params: {
   }
 }
 
+function generateProductAdviceFromReviews(params: {
+  emprendimientoId: string;
+  db: Awaited<ReturnType<typeof readDb>>;
+  plan: number;
+}): string[] {
+  const productIds = new Set(
+    params.db.products
+      .filter((entry) => entry.emprendimientoId === params.emprendimientoId)
+      .map((entry) => entry.id),
+  );
+
+  const reviews = params.db.reviews.filter(
+    (entry) => entry.status === "visible" && productIds.has(entry.productId),
+  );
+
+  if (reviews.length === 0) {
+    return [
+      "Publica fotos claras del producto, precio final y tiempo de entrega.",
+      "Responde preguntas en menos de 24 horas para mejorar conversión.",
+      "Activa un precio especial temporal para captar primeras ventas.",
+    ].slice(0, params.plan);
+  }
+
+  const lowScoreReviews = reviews.filter((entry) => entry.rating <= 3);
+  const frequentWords = new Map<string, number>();
+  for (const review of lowScoreReviews) {
+    for (const rawWord of review.comment.toLowerCase().split(/\s+/)) {
+      const word = rawWord.replace(/[^a-z0-9áéíóúñ]/gi, "");
+      if (word.length < 4) {
+        continue;
+      }
+
+      frequentWords.set(word, (frequentWords.get(word) ?? 0) + 1);
+    }
+  }
+
+  const topWords = Array.from(frequentWords.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map((entry) => entry[0]);
+
+  const averageRating =
+    reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
+  const advice: string[] = [
+    `Calificación promedio actual: ${averageRating.toFixed(1)}/5. Prioriza mejoras de experiencia en todo el ciclo de compra.`,
+    "Incluye política de cambios/devolución visible en la descripción del producto.",
+    "Agrega una imagen en contexto real para reducir dudas antes de comprar.",
+  ];
+
+  if (topWords.length > 0) {
+    advice.unshift(
+      `Temas repetidos en reseñas críticas: ${topWords.join(", ")}. Crea acciones concretas para esos puntos.`,
+    );
+  }
+
+  return advice.slice(0, params.plan);
+}
+
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as {
     action?: string;
@@ -215,14 +278,23 @@ export async function POST(request: NextRequest) {
   if (action === "request_conjunto") {
     const nameRequested = String(data.nameRequested ?? "").trim();
     const location = String(data.location ?? "").trim();
+    const mapUrlRaw = String(data.mapUrl ?? "").trim();
     const description = String(data.description ?? "").trim();
     const logoUrlRaw = String(data.logoUrl ?? "").trim();
     const logoUrl = logoUrlRaw || null;
     const contactEmail = String(data.contactEmail ?? "").trim().toLowerCase();
 
-    if (!nameRequested || !location || !contactEmail) {
+    if (!nameRequested || !location || !contactEmail || !mapUrlRaw) {
       return NextResponse.json(
-        { error: "Nombre, ubicación y email de contacto son requeridos." },
+        { error: "Nombre, ubicacion, Google Maps y email de contacto son requeridos." },
+        { status: 400 },
+      );
+    }
+
+    const parsedMapsLocation = parseGoogleMapsLocation(mapUrlRaw);
+    if (!parsedMapsLocation) {
+      return NextResponse.json(
+        { error: "El enlace de Google Maps no es valido." },
         { status: 400 },
       );
     }
@@ -233,6 +305,9 @@ export async function POST(request: NextRequest) {
       id: createId(),
       nameRequested,
       location,
+      mapUrl: parsedMapsLocation.mapUrl,
+      latitude: parsedMapsLocation.latitude,
+      longitude: parsedMapsLocation.longitude,
       description,
       logoUrl,
       contactEmail,
@@ -273,12 +348,18 @@ export async function POST(request: NextRequest) {
     const conjuntoId = String(data.conjuntoId ?? "").trim();
     const name = String(data.name ?? "").trim();
     const location = String(data.location ?? "").trim();
+    const mapUrlRaw = String(data.mapUrl ?? "").trim();
     const description = String(data.description ?? "").trim();
     const logoUrlRaw = String(data.logoUrl ?? "").trim();
     const statusRaw = String(data.status ?? "").trim();
 
-    if (!conjuntoId || !name || !location) {
+    if (!conjuntoId || !name || !location || !mapUrlRaw) {
       return NextResponse.json({ error: "Datos de conjunto inválidos." }, { status: 400 });
+    }
+
+    const parsedMapsLocation = parseGoogleMapsLocation(mapUrlRaw);
+    if (!parsedMapsLocation) {
+      return NextResponse.json({ error: "El enlace de Google Maps no es valido." }, { status: 400 });
     }
 
     const conjunto = db.conjuntos.find((entry) => entry.id === conjuntoId);
@@ -300,6 +381,9 @@ export async function POST(request: NextRequest) {
 
     conjunto.name = name;
     conjunto.location = location;
+    conjunto.mapUrl = parsedMapsLocation.mapUrl;
+    conjunto.latitude = parsedMapsLocation.latitude;
+    conjunto.longitude = parsedMapsLocation.longitude;
     conjunto.description = description;
     conjunto.logoUrl = logoUrlRaw || conjunto.logoUrl || "/images/owner-1.jpg";
 
@@ -340,7 +424,7 @@ export async function POST(request: NextRequest) {
     const assignedConjuntoId = user.conjuntoId || ensureIndependentConjunto(db, user.id);
 
     const timestamp = new Date().toISOString();
-    db.emprendimientos.push({
+    const createdEmprendimiento: Emprendimiento = {
       id: createId(),
       conjuntoId: assignedConjuntoId,
       ownerId: user.id,
@@ -353,7 +437,8 @@ export async function POST(request: NextRequest) {
       status: "pending",
       createdAt: timestamp,
       updatedAt: timestamp,
-    });
+    };
+    db.emprendimientos.push(createdEmprendimiento);
 
     const conjuntoAdmins = db.users.filter(
       (entry) =>
@@ -367,6 +452,10 @@ export async function POST(request: NextRequest) {
         admin.id,
         "new_emprendimiento_pending",
         `Nuevo emprendimiento pendiente: ${name}`,
+        {
+          emprendimientoId: createdEmprendimiento.id,
+          conjuntoId: assignedConjuntoId,
+        },
       );
     }
 
@@ -375,6 +464,10 @@ export async function POST(request: NextRequest) {
       user.id,
       "emprendimiento_created",
       "Tu emprendimiento fue creado y está pendiente de revisión.",
+      {
+        emprendimientoId: createdEmprendimiento.id,
+        conjuntoId: assignedConjuntoId,
+      },
     );
 
     await writeDb(db);
@@ -432,6 +525,10 @@ export async function POST(request: NextRequest) {
         emprendimiento.ownerId,
         "emprendimiento_updated",
         `Tu emprendimiento "${emprendimiento.name}" fue actualizado por gestión de comunidad.`,
+        {
+          emprendimientoId: emprendimiento.id,
+          conjuntoId: emprendimiento.conjuntoId,
+        },
       );
     }
 
@@ -466,6 +563,11 @@ export async function POST(request: NextRequest) {
       emprendimiento.ownerId,
       "emprendimiento_status_changed",
       `Tu emprendimiento "${emprendimiento.name}" fue ${status === "approved" ? "aprobado" : status === "rejected" ? "rechazado" : "suspendido"}.`,
+      {
+        emprendimientoId: emprendimiento.id,
+        conjuntoId: emprendimiento.conjuntoId,
+        status,
+      },
     );
 
     await writeDb(db);
@@ -486,6 +588,9 @@ export async function POST(request: NextRequest) {
     const specialPriceValue = specialPriceRaw ? Number(specialPriceRaw) : null;
     const category = String(data.category ?? "General").trim() || "General";
     const stockRaw = String(data.stock ?? "").trim();
+    const wantsAiAdvice = data.wantsAiAdvice === true;
+    const aiAdvicePlan = Number(data.aiAdvicePlan ?? AI_ADVICE_FREE_LIMIT);
+    const aiSubscriptionAccepted = data.aiSubscriptionAccepted === true;
     const imageUrl = String(data.imageUrl ?? "").trim();
     const imageUrls = parseImageUrls(data.imageUrls);
     const statusRaw = String(data.status ?? "draft") as ProductStatus;
@@ -495,6 +600,30 @@ export async function POST(request: NextRequest) {
 
     if (!emprendimientoId || !name || !description || Number.isNaN(price) || price <= 0) {
       return NextResponse.json({ error: "Datos de producto inválidos." }, { status: 400 });
+    }
+
+    if (
+      wantsAiAdvice &&
+      (!Number.isFinite(aiAdvicePlan) || aiAdvicePlan < AI_ADVICE_FREE_LIMIT)
+    ) {
+      return NextResponse.json(
+        { error: `El plan de consejos IA debe ser mínimo ${AI_ADVICE_FREE_LIMIT}.` },
+        { status: 400 },
+      );
+    }
+
+    if (
+      wantsAiAdvice &&
+      aiAdvicePlan > AI_ADVICE_FREE_LIMIT &&
+      !aiSubscriptionAccepted
+    ) {
+      return NextResponse.json(
+        {
+          error: "Para más de 2 consejos IA debes activar suscripción.",
+          requiresSubscription: true,
+        },
+        { status: 402 },
+      );
     }
 
     if (
@@ -576,7 +705,20 @@ export async function POST(request: NextRequest) {
     }
 
     await writeDb(db);
-    return NextResponse.json({ ok: true, message: "Producto creado." });
+    const aiAdvice = wantsAiAdvice
+      ? generateProductAdviceFromReviews({
+          emprendimientoId,
+          db,
+          plan: aiAdvicePlan,
+        })
+      : [];
+
+    return NextResponse.json({
+      ok: true,
+      message: "Producto creado.",
+      productId: createdProduct.id,
+      aiAdvice,
+    });
   }
 
   if (action === "update_producto") {
@@ -751,6 +893,9 @@ export async function POST(request: NextRequest) {
         name: reqEntry.nameRequested,
         slug,
         location: reqEntry.location,
+        mapUrl: reqEntry.mapUrl,
+        latitude: reqEntry.latitude,
+        longitude: reqEntry.longitude,
         description: reqEntry.description,
         logoUrl: reqEntry.logoUrl ?? "/images/owner-1.jpg",
         status: "approved",
@@ -871,6 +1016,10 @@ export async function POST(request: NextRequest) {
         ownerId,
         "emprendimiento_deleted",
         `Tu emprendimiento "${emprendimientoName}" fue eliminado por gestión de comunidad.`,
+        {
+          emprendimientoId,
+          conjuntoId: emprendimiento.conjuntoId,
+        },
       );
     }
 

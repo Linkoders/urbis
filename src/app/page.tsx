@@ -21,6 +21,9 @@ interface LandingConjunto {
   name: string;
   slug: string;
   location: string;
+  mapUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
   logoUrl: string | null;
   emprendimientos: number;
   products: number;
@@ -135,6 +138,10 @@ export default function Home() {
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState("");
   const [feedbackSuccess, setFeedbackSuccess] = useState("");
+  const [locationPromptVisible, setLocationPromptVisible] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const [locationReady, setLocationReady] = useState(false);
 
   useEffect(() => {
     async function loadLandingData() {
@@ -173,6 +180,26 @@ export default function Home() {
     }
 
     void loadLandingData();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storedAnswer = window.localStorage.getItem("urbis-location-prompt-answer");
+    const storedLatitude = window.localStorage.getItem("urbis-user-latitude");
+    const storedLongitude = window.localStorage.getItem("urbis-user-longitude");
+
+    if (storedAnswer === "accepted" && storedLatitude && storedLongitude) {
+      setLocationReady(true);
+      setLocationPromptVisible(false);
+      return;
+    }
+
+    if (!storedAnswer) {
+      setLocationPromptVisible(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -329,6 +356,43 @@ export default function Home() {
     router.push(`/productos?search=${encodeURIComponent(query)}`);
   }
 
+  function requestPersonalizedLocation() {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setLocationError("Tu navegador no permite compartir ubicación.");
+      return;
+    }
+
+    setLocating(true);
+    setLocationError("");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        window.localStorage.setItem("urbis-location-prompt-answer", "accepted");
+        window.localStorage.setItem("urbis-user-latitude", String(position.coords.latitude));
+        window.localStorage.setItem("urbis-user-longitude", String(position.coords.longitude));
+        setLocationReady(true);
+        setLocationPromptVisible(false);
+        setLocating(false);
+      },
+      () => {
+        setLocationError("No se pudo obtener tu ubicación. Puedes seguir explorando sin este permiso.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
+    );
+  }
+
+  function dismissLocationPrompt() {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("urbis-location-prompt-answer", "dismissed");
+    }
+    setLocationPromptVisible(false);
+  }
+
   async function submitFeedback(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFeedbackError("");
@@ -374,6 +438,42 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
       />
+      {locationPromptVisible ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/72 px-6 backdrop-blur-sm">
+          <div className="w-full max-w-xl border border-emerald-300/20 bg-[#0b1118] p-7 shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">
+              Experiencia más personalizada
+            </p>
+            <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl font-semibold text-white sm:text-4xl">
+              Comparte tu ubicación para ver lo más cercano.
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-zinc-300">
+              URBIS puede priorizar productos, ofertas y comunidades cercanas a ti.
+              Primero te lo pedimos aquí y luego tu navegador confirmará el permiso.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={requestPersonalizedLocation}
+                disabled={locating}
+                className="bg-emerald-300 px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-black disabled:opacity-60"
+              >
+                {locating ? "Activando ubicación..." : "Sí, compartir ubicación"}
+              </button>
+              <button
+                type="button"
+                onClick={dismissLocationPrompt}
+                className="border border-white/20 px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-zinc-200 transition hover:border-white/60"
+              >
+                Continuar sin ubicación
+              </button>
+            </div>
+            {locationError ? (
+              <p className="mt-4 text-sm text-amber-300">{locationError}</p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       <main ref={rootRef} className="bg-[#080b0f] text-zinc-100">
       <section className="mx-auto grid min-h-screen max-w-[1320px] grid-cols-1 gap-12 px-6 pb-16 pt-32 lg:grid-cols-[1.02fr_1fr] lg:px-12">
         <div className="flex flex-col justify-center" data-hero>
@@ -387,6 +487,17 @@ export default function Home() {
             Escribe el nombre del producto, categoría o emprendimiento para
             encontrar opciones locales al instante.
           </p>
+
+          {locationReady ? (
+            <div className="mt-8 max-w-xl border border-cyan-300/25 bg-cyan-300/10 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">
+                Ubicación activada
+              </p>
+              <p className="mt-3 text-sm leading-6 text-zinc-200">
+                Ya podemos priorizar productos y comunidades cercanas para ti.
+              </p>
+            </div>
+          ) : null}
 
           <form onSubmit={submitHeroSearch} className="mt-8 max-w-xl">
             <div className="flex gap-2 border border-white/20 bg-black/35 p-2">
@@ -785,7 +896,7 @@ export default function Home() {
       </section>
 
       <section id="apoyo" className="bg-zinc-100 px-6 py-24 text-[#0a0f14] lg:px-12">
-        <div className="mx-auto grid max-w-[1320px] gap-12 lg:grid-cols-[1fr_1.05fr]">
+        <div className="mx-auto grid max-w-[1320px] gap-12 lg:items-start lg:grid-cols-[1fr_1.05fr]">
           <div data-reveal>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#2d6b4d]">
               Apoya URBIS
@@ -798,6 +909,12 @@ export default function Home() {
               también ayudan la difusión, las recomendaciones, la colaboración técnica o
               la creación de alianzas con comunidades.
             </p>
+            <Link
+              href="/donar"
+              className="mt-6 inline-flex items-center justify-center rounded-sm bg-[#0b1635] px-8 py-4 text-sm font-extrabold uppercase tracking-[0.16em] text-white shadow-[0_18px_40px_rgba(11,22,53,0.35)] transition hover:-translate-y-0.5 hover:bg-[#15285a] hover:shadow-[0_22px_56px_rgba(11,22,53,0.45)]"
+            >
+              Quiero donar al proyecto
+            </Link>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <article className="border border-zinc-300 bg-white p-4">
                 <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Difusión</p>

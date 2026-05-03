@@ -70,11 +70,18 @@ function createSeedDb(): UrbisDb {
       id: superId,
       name: "Super Admin URBIS",
       email: "super@urbis.local",
+      phone: null,
       passwordHash: hashPassword("Super123!"),
       role: "superadmin",
       conjuntoId: null,
       avatarUrl: null,
       status: "active",
+      subscriptionPlan: "plus",
+      subscriptionStatus: "active",
+      subscriptionPaymentMethod: "system_seed",
+      subscriptionUpdatedAt: timestamp,
+      emailVerifiedAt: timestamp,
+      emailVerificationCode: null,
       acceptedTermsAt: timestamp,
       createdAt: timestamp,
     },
@@ -96,16 +103,34 @@ function normalizeDb(rawDb: UrbisDb): UrbisDb {
   rawDb.users = rawDb.users.map((user) => ({
     ...user,
     avatarUrl: user.avatarUrl ? toClientAssetUrl(user.avatarUrl) : null,
+    phone: user.phone ?? null,
+    subscriptionPlan: user.subscriptionPlan === "plus" ? "plus" : "basic",
+    subscriptionStatus:
+      user.subscriptionStatus === "active"
+        ? "active"
+        : user.subscriptionStatus === "pending"
+          ? "pending"
+          : "inactive",
+    subscriptionPaymentMethod: user.subscriptionPaymentMethod ?? null,
+    subscriptionUpdatedAt: user.subscriptionUpdatedAt ?? null,
+    emailVerifiedAt: user.emailVerifiedAt ?? null,
+    emailVerificationCode: user.emailVerificationCode ?? null,
     acceptedTermsAt: user.acceptedTermsAt ?? null,
   }));
 
   rawDb.conjuntos = rawDb.conjuntos.map((conjunto) => ({
     ...conjunto,
+    mapUrl: conjunto.mapUrl ?? null,
+    latitude: typeof conjunto.latitude === "number" ? conjunto.latitude : null,
+    longitude: typeof conjunto.longitude === "number" ? conjunto.longitude : null,
     logoUrl: conjunto.logoUrl ? toClientAssetUrl(conjunto.logoUrl) : "/images/owner-1.jpg",
   }));
 
   rawDb.conjuntoRequests = rawDb.conjuntoRequests.map((request) => ({
     ...request,
+    mapUrl: request.mapUrl ?? null,
+    latitude: typeof request.latitude === "number" ? request.latitude : null,
+    longitude: typeof request.longitude === "number" ? request.longitude : null,
     logoUrl: request.logoUrl ? toClientAssetUrl(request.logoUrl) : null,
     requestedByUserId: request.requestedByUserId ?? null,
   }));
@@ -263,11 +288,23 @@ async function readRelationalDb(): Promise<UrbisDb> {
       id: user.id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
       passwordHash: user.passwordHash,
       role: user.role as UserRole,
       conjuntoId: user.conjuntoId,
       avatarUrl: user.avatarUrl,
       status: user.status as User["status"],
+      subscriptionPlan: user.subscriptionPlan === "plus" ? "plus" : "basic",
+      subscriptionStatus:
+        user.subscriptionStatus === "active"
+          ? "active"
+          : user.subscriptionStatus === "pending"
+            ? "pending"
+            : "inactive",
+      subscriptionPaymentMethod: user.subscriptionPaymentMethod ?? null,
+      subscriptionUpdatedAt: user.subscriptionUpdatedAt?.toISOString() ?? null,
+      emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
+      emailVerificationCode: user.emailVerificationCode ?? null,
       acceptedTermsAt: user.acceptedTermsAt?.toISOString() ?? null,
       createdAt: user.createdAt.toISOString(),
     })),
@@ -276,6 +313,9 @@ async function readRelationalDb(): Promise<UrbisDb> {
       name: conjunto.name,
       slug: conjunto.slug,
       location: conjunto.location,
+      mapUrl: conjunto.mapUrl,
+      latitude: conjunto.latitude,
+      longitude: conjunto.longitude,
       description: conjunto.description,
       logoUrl: conjunto.logoUrl,
       status: conjunto.status as Conjunto["status"],
@@ -286,6 +326,9 @@ async function readRelationalDb(): Promise<UrbisDb> {
       id: request.id,
       nameRequested: request.nameRequested,
       location: request.location,
+      mapUrl: request.mapUrl,
+      latitude: request.latitude,
+      longitude: request.longitude,
       description: request.description,
       logoUrl: request.logoUrl,
       contactEmail: request.contactEmail,
@@ -440,11 +483,18 @@ async function replaceRelationalDb(nextDb: UrbisDb): Promise<void> {
           id: user.id,
           name: user.name,
           email: user.email,
+          phone: user.phone,
           passwordHash: user.passwordHash,
           role: user.role,
           conjuntoId: user.conjuntoId,
           avatarUrl: user.avatarUrl,
           status: user.status,
+          subscriptionPlan: user.subscriptionPlan,
+          subscriptionStatus: user.subscriptionStatus,
+          subscriptionPaymentMethod: user.subscriptionPaymentMethod,
+          subscriptionUpdatedAt: parseDate(user.subscriptionUpdatedAt),
+          emailVerifiedAt: parseDate(user.emailVerifiedAt),
+          emailVerificationCode: user.emailVerificationCode,
           acceptedTermsAt: parseDate(user.acceptedTermsAt),
           createdAt: parseDate(user.createdAt, new Date())!,
         })),
@@ -458,6 +508,9 @@ async function replaceRelationalDb(nextDb: UrbisDb): Promise<void> {
           name: conjunto.name,
           slug: conjunto.slug,
           location: conjunto.location,
+          mapUrl: conjunto.mapUrl,
+          latitude: conjunto.latitude,
+          longitude: conjunto.longitude,
           description: conjunto.description,
           logoUrl: conjunto.logoUrl,
           status: conjunto.status,
@@ -473,6 +526,9 @@ async function replaceRelationalDb(nextDb: UrbisDb): Promise<void> {
           id: request.id,
           nameRequested: request.nameRequested,
           location: request.location,
+          mapUrl: request.mapUrl,
+          latitude: request.latitude,
+          longitude: request.longitude,
           description: request.description,
           logoUrl: request.logoUrl,
           contactEmail: request.contactEmail,
@@ -870,10 +926,16 @@ export function toSessionUser(user: User): SessionUser {
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone,
     role: user.role,
     conjuntoId: user.conjuntoId,
     avatarUrl: user.avatarUrl ?? null,
     status: user.status,
+    subscriptionPlan: user.subscriptionPlan,
+    subscriptionStatus: user.subscriptionStatus,
+    subscriptionPaymentMethod: user.subscriptionPaymentMethod,
+    subscriptionUpdatedAt: user.subscriptionUpdatedAt,
+    emailVerifiedAt: user.emailVerifiedAt ?? null,
   };
 }
 
@@ -896,11 +958,23 @@ export async function getSessionUser(request: NextRequest): Promise<User | null>
       id: user.id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
       passwordHash: user.passwordHash,
       role: user.role as UserRole,
       conjuntoId: user.conjuntoId,
       avatarUrl: user.avatarUrl,
       status: user.status as User["status"],
+      subscriptionPlan: user.subscriptionPlan === "plus" ? "plus" : "basic",
+      subscriptionStatus:
+        user.subscriptionStatus === "active"
+          ? "active"
+          : user.subscriptionStatus === "pending"
+            ? "pending"
+            : "inactive",
+      subscriptionPaymentMethod: user.subscriptionPaymentMethod ?? null,
+      subscriptionUpdatedAt: user.subscriptionUpdatedAt?.toISOString() ?? null,
+      emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
+      emailVerificationCode: user.emailVerificationCode ?? null,
       acceptedTermsAt: user.acceptedTermsAt?.toISOString() ?? null,
       createdAt: user.createdAt.toISOString(),
     };

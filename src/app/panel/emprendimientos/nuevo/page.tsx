@@ -15,6 +15,7 @@ export default function NewEmprendimientoPage() {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [step, setStep] = useState<1 | 2>(1);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -119,79 +120,120 @@ export default function NewEmprendimientoPage() {
           </h1>
         </header>
 
+        <div className="grid grid-cols-2 gap-2">
+          {[1, 2].map((entry) => (
+            <div key={entry} className={`h-1.5 ${step >= entry ? "bg-emerald-300" : "bg-white/20"}`} />
+          ))}
+        </div>
+
         <form onSubmit={submit} className="space-y-4 border border-white/10 bg-black/25 p-6">
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Nombre del emprendimiento"
-            className="w-full border border-white/20 bg-black/40 px-4 py-3"
-            required
-          />
-          <textarea
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="Descripción"
-            rows={4}
-            className="w-full border border-white/20 bg-black/40 px-4 py-3"
-            required
-          />
-          <div className="space-y-2">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
-                setLogoFile(file);
-                if (!file) {
-                  setLogoPreview("/images/market-woman.jpg");
-                  return;
-                }
-                setLogoPreview(URL.createObjectURL(file));
-              }}
-              className="w-full border border-white/20 bg-black/40 px-4 py-3"
-            />
-            <div className="flex items-center gap-3 border border-white/15 bg-black/30 px-3 py-2">
-              <div
-                className="h-10 w-10 rounded-full border border-white/20 bg-cover bg-center"
-                style={{ backgroundImage: `url(${logoPreview})` }}
+          {step === 1 ? (
+            <>
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Nombre del emprendimiento"
+                className="w-full border border-white/20 bg-black/40 px-4 py-3"
+                required
               />
-              <p className="text-xs uppercase tracking-[0.12em] text-zinc-400">Vista previa del logo</p>
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input
-              type="email"
-              value={contactEmail}
-              onChange={(event) => setContactEmail(event.target.value)}
-              placeholder="Email de contacto"
-              className="w-full border border-white/20 bg-black/40 px-4 py-3"
-            />
-            <input
-              value={contactPhone}
-              onChange={(event) => setContactPhone(event.target.value)}
-              placeholder="Teléfono de contacto"
-              className="w-full border border-white/20 bg-black/40 px-4 py-3"
-            />
-          </div>
-          <select
-            value={visibility}
-            onChange={(event) => setVisibility(event.target.value as "public" | "internal")}
-            className="w-full border border-white/20 bg-black/40 px-4 py-3"
-          >
-            <option value="public">Visible para todos</option>
-            <option value="internal">Solo visible en mi conjunto</option>
-          </select>
+              <textarea
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="Descripción"
+                rows={4}
+                className="w-full border border-white/20 bg-black/40 px-4 py-3"
+                required
+              />
+            </>
+          ) : null}
+
+          {step === 2 ? (
+            <>
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    setLogoFile(file);
+                    if (!file) {
+                      setLogoPreview("/images/market-woman.jpg");
+                      return;
+                    }
+                    setLogoPreview(URL.createObjectURL(file));
+                  }}
+                  className="w-full border border-white/20 bg-black/40 px-4 py-3"
+                />
+                <div className="flex items-center gap-3 border border-white/15 bg-black/30 px-3 py-2">
+                  <div
+                    className="h-10 w-10 rounded-full border border-white/20 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${logoPreview})` }}
+                  />
+                  <p className="text-xs uppercase tracking-[0.12em] text-zinc-400">Vista previa del logo</p>
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(event) => setContactEmail(event.target.value)}
+                  placeholder="Email de contacto"
+                  className="w-full border border-white/20 bg-black/40 px-4 py-3"
+                />
+                <input
+                  value={contactPhone}
+                  onChange={(event) => setContactPhone(event.target.value)}
+                  placeholder="Teléfono de contacto"
+                  className="w-full border border-white/20 bg-black/40 px-4 py-3"
+                />
+              </div>
+              <select
+                value={visibility}
+                onChange={(event) => setVisibility(event.target.value as "public" | "internal")}
+                className="w-full border border-white/20 bg-black/40 px-4 py-3"
+              >
+                <option value="public">Visible para todos</option>
+                <option value="internal">Solo visible en mi conjunto</option>
+              </select>
+            </>
+          ) : null}
 
           {error ? <p className="text-sm text-red-300">{error}</p> : null}
 
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-zinc-100 px-5 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-black hover:bg-white disabled:opacity-60"
-            >
-              {loading ? "Guardando..." : "Crear emprendimiento"}
-            </button>
+          <div className="flex flex-wrap gap-3">
+            {step > 1 ? (
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="border border-white/30 px-5 py-3 text-sm font-semibold uppercase tracking-[0.14em] hover:border-white"
+              >
+                Atrás
+              </button>
+            ) : null}
+            {step === 1 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!name.trim() || !description.trim()) {
+                    setError("Completa nombre y descripción para continuar.");
+                    return;
+                  }
+                  setError("");
+                  setStep(2);
+                }}
+                className="bg-zinc-100 px-5 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-black hover:bg-white"
+              >
+                Continuar
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-zinc-100 px-5 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-black hover:bg-white disabled:opacity-60"
+              >
+                {loading ? "Guardando..." : "Crear emprendimiento"}
+              </button>
+            )}
             <Link
               href="/panel"
               className="border border-white/30 px-5 py-3 text-sm font-semibold uppercase tracking-[0.14em] hover:border-white"

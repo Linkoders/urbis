@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FullScreenSpinner } from "@/components/spinner";
@@ -59,6 +60,7 @@ async function callAction(action: string, data: Record<string, unknown>) {
 }
 
 export default function PanelPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -209,6 +211,12 @@ export default function PanelPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
+              href="/panel/perfil"
+              className="border border-white/30 px-5 py-3 text-xs font-semibold uppercase tracking-[0.14em] hover:border-white"
+            >
+              Mi perfil
+            </Link>
+            <Link
               href="/panel/reportes"
               className="border border-white/30 px-5 py-3 text-xs font-semibold uppercase tracking-[0.14em] hover:border-white"
             >
@@ -332,7 +340,11 @@ export default function PanelPage() {
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {emprendimientos.map((emprendimiento) => (
-              <article key={emprendimiento.id} className="border border-white/10 bg-black/25 p-5">
+              <article
+                key={emprendimiento.id}
+                onClick={() => router.push(`/panel/emprendimientos/${emprendimiento.id}`)}
+                className="cursor-pointer border border-white/10 bg-black/25 p-5 transition hover:border-emerald-300/60"
+              >
                 <div className="flex items-center gap-3">
                   <div
                     className="h-14 w-14 rounded-full border border-white/20 bg-cover bg-center"
@@ -353,6 +365,7 @@ export default function PanelPage() {
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <Link
                     href={`/panel/emprendimientos/${emprendimiento.id}`}
+                    onClick={(event) => event.stopPropagation()}
                     className="border border-white/30 px-3 py-2 text-center text-xs font-semibold uppercase tracking-[0.12em] hover:border-white"
                   >
                     Ver productos
@@ -362,7 +375,10 @@ export default function PanelPage() {
                       {emprendimiento.status !== "approved" ? (
                         <button
                           type="button"
-                          onClick={() => void processEmprendimientoStatus(emprendimiento.id, "approved")}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void processEmprendimientoStatus(emprendimiento.id, "approved");
+                          }}
                           className="border border-emerald-300 px-3 py-2 text-center text-xs font-semibold uppercase tracking-[0.12em] text-emerald-200 hover:bg-emerald-500/10"
                         >
                           Aprobar
@@ -370,7 +386,10 @@ export default function PanelPage() {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => void processEmprendimientoStatus(emprendimiento.id, "suspended")}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void processEmprendimientoStatus(emprendimiento.id, "suspended");
+                          }}
                           className="border border-amber-300 px-3 py-2 text-center text-xs font-semibold uppercase tracking-[0.12em] text-amber-200 hover:bg-amber-500/10"
                         >
                           Suspender
@@ -379,7 +398,10 @@ export default function PanelPage() {
                       {emprendimiento.status !== "rejected" ? (
                         <button
                           type="button"
-                          onClick={() => void processEmprendimientoStatus(emprendimiento.id, "rejected")}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void processEmprendimientoStatus(emprendimiento.id, "rejected");
+                          }}
                           className="border border-red-300 px-3 py-2 text-center text-xs font-semibold uppercase tracking-[0.12em] text-red-200 hover:bg-red-500/10"
                         >
                           Rechazar
@@ -389,19 +411,21 @@ export default function PanelPage() {
                   ) : null}
                   <Link
                     href={`/panel/emprendimientos/${emprendimiento.id}/editar`}
+                    onClick={(event) => event.stopPropagation()}
                     className="border border-white/30 px-3 py-2 text-center text-xs font-semibold uppercase tracking-[0.12em] hover:border-white"
                   >
                     Editar
                   </Link>
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={(event) => {
+                      event.stopPropagation();
                       setConfirmDelete({
                         kind: "emprendimiento",
                         id: emprendimiento.id,
                         name: emprendimiento.name,
-                      })
-                    }
+                      });
+                    }}
                   className="col-span-2 border border-red-300 px-3 py-2 text-center text-xs font-semibold uppercase tracking-[0.12em] text-red-200 hover:bg-red-500/10"
                 >
                   Eliminar

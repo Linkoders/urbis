@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -40,12 +40,40 @@ interface ProductDetail {
 
 interface SessionData {
   authenticated: boolean;
+  user?: {
+    id: string;
+    name: string;
+  };
 }
 
 function Stars({ value }: { value: number }) {
-  return <span className="font-semibold text-amber-300">{`${value}/5`}</span>;
+  return (
+    <span className="text-amber-300">
+      {"â˜…".repeat(Math.max(0, Math.min(5, value)))}
+      <span className="text-zinc-600">{"â˜…".repeat(Math.max(0, 5 - value))}</span>
+    </span>
+  );
 }
+function toWhatsappEcuador(phone: string): string {
+  const digits = phone.replace(/[^0-9]/g, "");
+  if (!digits) {
+    return "";
+  }
 
+  if (digits.startsWith("593")) {
+    return digits;
+  }
+
+  if (digits.startsWith("0") && digits.length === 10) {
+    return `593${digits.slice(1)}`;
+  }
+
+  if (digits.length === 9) {
+    return `593${digits}`;
+  }
+
+  return digits;
+}
 export default function ProductDetailPage() {
   const params = useParams<{ slug: string }>();
   const slug = String(params?.slug ?? "");
@@ -58,6 +86,9 @@ export default function ProductDetailPage() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [message, setMessage] = useState("");
+  const [favorite, setFavorite] = useState(false);
+  const [interested, setInterested] = useState(false);
+  const [preferenceLoading, setPreferenceLoading] = useState(false);
 
   const loadDetail = useCallback(async () => {
     if (!slug) {
@@ -103,6 +134,33 @@ export default function ProductDetailPage() {
     void loadDetail();
   }, [loadDetail]);
 
+  useEffect(() => {
+    async function loadPreferences() {
+      if (!session.authenticated || !product) {
+        setFavorite(false);
+        setInterested(false);
+        return;
+      }
+
+      const response = await fetch(
+        `/api/user/product-preferences?productId=${encodeURIComponent(product.id)}`,
+        { cache: "no-store" },
+      );
+      if (!response.ok) {
+        return;
+      }
+
+      const data = (await response.json()) as {
+        favorite?: boolean;
+        interested?: boolean;
+      };
+      setFavorite(Boolean(data.favorite));
+      setInterested(Boolean(data.interested));
+    }
+
+    void loadPreferences();
+  }, [product, session.authenticated]);
+
   async function submitReview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!product) {
@@ -125,13 +183,52 @@ export default function ProductDetailPage() {
 
     const data = (await response.json()) as { message?: string; error?: string };
     if (!response.ok) {
-      setMessage(data.error ?? "No se pudo guardar la reseña.");
+      setMessage(data.error ?? "No se pudo guardar la reseÃ±a.");
       return;
     }
 
-    setMessage(data.message ?? "Reseña agregada.");
+    setMessage(data.message ?? "ReseÃ±a agregada.");
     setReviewComment("");
     await loadDetail();
+  }
+
+  async function setProductPreference(action: "favorite" | "unfavorite" | "interest") {
+    if (!product || !session.authenticated) {
+      setMessage("Inicia sesiÃ³n para guardar preferencias.");
+      return;
+    }
+
+    setPreferenceLoading(true);
+    setMessage("");
+
+    const response = await fetch("/api/user/product-preferences", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        productId: product.id,
+        action,
+      }),
+    });
+
+    const data = (await response.json()) as { error?: string };
+    if (!response.ok) {
+      setMessage(data.error ?? "No se pudo actualizar la preferencia.");
+      setPreferenceLoading(false);
+      return;
+    }
+
+    if (action === "favorite") {
+      setFavorite(true);
+      setMessage("Producto agregado a favoritos.");
+    } else if (action === "unfavorite") {
+      setFavorite(false);
+      setMessage("Producto eliminado de favoritos.");
+    } else {
+      setInterested(true);
+      setMessage("Marcado como me interesa.");
+    }
+
+    setPreferenceLoading(false);
   }
 
   if (loading) {
@@ -224,7 +321,7 @@ export default function ProductDetailPage() {
             <div className="flex items-center justify-between border-y border-white/10 py-3 text-sm text-zinc-300">
               <span>{product.viewCount} vistas</span>
               <span>
-                <Stars value={Math.round(product.rating.average)} /> - {product.rating.total} reseñas
+                <Stars value={Math.round(product.rating.average)} /> - {product.rating.total} reseÃ±as
               </span>
             </div>
 
@@ -243,7 +340,7 @@ export default function ProductDetailPage() {
                   <p className="font-semibold text-white">{product.emprendimiento.name}</p>
                   <p className="text-xs uppercase tracking-[0.12em] text-zinc-400">
                     {product.emprendimiento.visibility === "public"
-                      ? "Visible públicamente"
+                      ? "Visible pÃºblicamente"
                       : "Visible solo en el conjunto"}
                   </p>
                 </div>
@@ -252,8 +349,46 @@ export default function ProductDetailPage() {
                 Contacto: {product.emprendimiento.contactEmail || "No definido"}
               </p>
               <p className="text-sm text-zinc-300">
-                Teléfono: {product.emprendimiento.contactPhone || "No definido"}
+                TelÃ©fono: {product.emprendimiento.contactPhone || "No definido"}
               </p>
+              <div className="flex flex-wrap gap-2">
+                {product.emprendimiento.contactPhone ? (
+                  <a
+                    href={`https://wa.me/${toWhatsappEcuador(product.emprendimiento.contactPhone)}?text=${encodeURIComponent(`Hola, me interesa ${product.name}`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="border border-emerald-300/60 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-200 hover:border-emerald-300"
+                  >
+                    Contactar por WhatsApp
+                  </a>
+                ) : null}
+                {product.emprendimiento.contactEmail ? (
+                  <a
+                    href={`mailto:${product.emprendimiento.contactEmail}?subject=${encodeURIComponent(`Consulta: ${product.name}`)}`}
+                    className="border border-cyan-300/60 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-cyan-200 hover:border-cyan-300"
+                  >
+                    Enviar correo
+                  </a>
+                ) : null}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => void setProductPreference(favorite ? "unfavorite" : "favorite")}
+                  disabled={preferenceLoading}
+                  className={`border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] disabled:opacity-60 ${favorite ? "border-amber-300 text-amber-200" : "border-white/30 text-zinc-100 hover:border-white"}`}
+                >
+                  {favorite ? "Quitar favorito" : "Agregar favorito"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void setProductPreference("interest")}
+                  disabled={preferenceLoading || interested}
+                  className={`border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] disabled:opacity-60 ${interested ? "border-emerald-300 text-emerald-200" : "border-white/30 text-zinc-100 hover:border-white"}`}
+                >
+                  {interested ? "Te interesa" : "Me interesa"}
+                </button>
+              </div>
             </div>
           </aside>
         </div>
@@ -261,18 +396,20 @@ export default function ProductDetailPage() {
         <section className="mt-12 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
           {session.authenticated ? (
             <form className="space-y-3 border border-white/10 bg-black/25 p-5" onSubmit={submitReview}>
-              <h2 className="text-2xl font-semibold text-white">Escribe tu reseña</h2>
-              <select
-                value={reviewRating}
-                onChange={(event) => setReviewRating(Number(event.target.value))}
-                className="w-full border border-white/20 bg-black/40 px-4 py-3 text-sm"
-              >
-                {[5, 4, 3, 2, 1].map((value) => (
-                  <option key={value} value={value}>
-                    {value} estrellas
-                  </option>
+              <h2 className="text-2xl font-semibold text-white">Escribe tu reseÃ±a</h2>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setReviewRating(value)}
+                    className={`text-2xl ${reviewRating >= value ? "text-amber-300" : "text-zinc-500"}`}
+                  >
+                    â˜…
+                  </button>
                 ))}
-              </select>
+                <span className="text-sm text-zinc-300">{reviewRating}/5</span>
+              </div>
               <textarea
                 value={reviewComment}
                 onChange={(event) => setReviewComment(event.target.value)}
@@ -284,29 +421,29 @@ export default function ProductDetailPage() {
                 type="submit"
                 className="w-full bg-zinc-100 px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-black hover:bg-white"
               >
-                Publicar reseña
+                Publicar reseÃ±a
               </button>
               {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
             </form>
           ) : (
             <div className="border border-white/10 bg-black/25 p-5">
-              <h2 className="text-2xl font-semibold text-white">Participa con reseñas</h2>
+              <h2 className="text-2xl font-semibold text-white">Participa con reseÃ±as</h2>
               <p className="mt-3 text-zinc-300">
-                Inicia sesión para valorar este producto y ayudar a otros vecinos.
+                Inicia sesiÃ³n para valorar este producto y ayudar a otros vecinos.
               </p>
               <Link
                 href="/auth/login"
                 className="mt-4 inline-block border border-white/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] hover:border-white"
               >
-                Iniciar sesión
+                Iniciar sesiÃ³n
               </Link>
             </div>
           )}
 
           <div className="space-y-4 border border-white/10 bg-black/25 p-5">
-            <h2 className="text-2xl font-semibold text-white">Reseñas del producto</h2>
+            <h2 className="text-2xl font-semibold text-white">ReseÃ±as del producto</h2>
             {product.reviews.length === 0 ? (
-              <p className="text-zinc-400">Este producto todavía no tiene reseñas.</p>
+              <p className="text-zinc-400">Este producto todavÃ­a no tiene reseÃ±as.</p>
             ) : (
               product.reviews.map((review) => (
                 <article key={review.id} className="border border-white/10 bg-black/35 p-4">
@@ -324,3 +461,4 @@ export default function ProductDetailPage() {
     </main>
   );
 }
+

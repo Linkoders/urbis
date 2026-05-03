@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildGoogleMapsDirectionsUrl, haversineDistanceKm } from "@/lib/google-maps";
 import { canViewProduct, getSessionUser, readDb } from "@/lib/urbis-store";
 import { PRODUCT_CATEGORIES } from "@/config/product-categories";
 
@@ -49,13 +50,15 @@ export async function GET(request: NextRequest) {
   const search = request.nextUrl.searchParams.get("search")?.toLowerCase() ?? "";
   const category = request.nextUrl.searchParams.get("category") ?? "all";
   const conjuntoSlug = request.nextUrl.searchParams.get("conjunto") ?? "all";
-  const sort = request.nextUrl.searchParams.get("sort") ?? "recent";
+  const sort = request.nextUrl.searchParams.get("sort") ?? "nearest";
   const onSaleOnly = request.nextUrl.searchParams.get("onSale") === "1";
   const scope = request.nextUrl.searchParams.get("scope") ?? "all";
   const minPrice = safeNumber(request.nextUrl.searchParams.get("minPrice"));
   const maxPrice = safeNumber(request.nextUrl.searchParams.get("maxPrice"));
   const offset = safeNumber(request.nextUrl.searchParams.get("offset")) ?? 0;
   const parsedLimit = safeNumber(request.nextUrl.searchParams.get("limit")) ?? 12;
+  const latitude = safeNumber(request.nextUrl.searchParams.get("latitude"));
+  const longitude = safeNumber(request.nextUrl.searchParams.get("longitude"));
   const limit = Math.min(Math.max(parsedLimit, 1), 24);
   const safeOffset = offset < 0 ? 0 : offset;
 
@@ -119,7 +122,14 @@ export async function GET(request: NextRequest) {
         name: conjunto.name,
         slug: conjunto.slug,
         location: conjunto.location,
+        mapUrl: buildGoogleMapsDirectionsUrl(conjunto.latitude, conjunto.longitude, conjunto.mapUrl),
+        latitude: conjunto.latitude,
+        longitude: conjunto.longitude,
       },
+      distanceKm:
+        latitude === null || longitude === null
+          ? null
+          : haversineDistanceKm(latitude, longitude, conjunto.latitude, conjunto.longitude),
       rating,
     }];
   });
@@ -165,6 +175,22 @@ export async function GET(request: NextRequest) {
 
     if (sort === "rating") {
       return b.rating.average - a.rating.average;
+    }
+
+    if (sort === "nearest") {
+      if (a.distanceKm === null && b.distanceKm === null) {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+
+      if (a.distanceKm === null) {
+        return 1;
+      }
+
+      if (b.distanceKm === null) {
+        return -1;
+      }
+
+      return a.distanceKm - b.distanceKm;
     }
 
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();

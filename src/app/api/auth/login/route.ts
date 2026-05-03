@@ -28,15 +28,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Tu cuenta no está activa." }, { status: 403 });
     }
 
+    if (!user.emailVerifiedAt) {
+      return NextResponse.json(
+        { error: "Debes verificar tu correo electrónico antes de iniciar sesión." },
+        { status: 403 },
+      );
+    }
+
     const response = NextResponse.json({
       ok: true,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
         conjuntoId: user.conjuntoId,
         avatarUrl: user.avatarUrl,
+        subscriptionPlan: user.subscriptionPlan,
+        subscriptionStatus: user.subscriptionStatus,
+        subscriptionPaymentMethod: user.subscriptionPaymentMethod,
+        subscriptionUpdatedAt: user.subscriptionUpdatedAt,
+        emailVerifiedAt: user.emailVerifiedAt,
       },
     });
 

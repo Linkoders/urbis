@@ -14,11 +14,18 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  phone: string | null;
   passwordHash: string;
   role: UserRole;
   conjuntoId: string | null;
   avatarUrl: string | null;
   status: "active" | "blocked";
+  subscriptionPlan: "basic" | "plus";
+  subscriptionStatus: "inactive" | "pending" | "active";
+  subscriptionPaymentMethod: string | null;
+  subscriptionUpdatedAt: string | null;
+  emailVerifiedAt: string | null;
+  emailVerificationCode: string | null;
   acceptedTermsAt: string | null;
   createdAt: string;
 }
@@ -28,6 +35,9 @@ export interface Conjunto {
   name: string;
   slug: string;
   location: string;
+  mapUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
   description: string;
   logoUrl: string | null;
   status: ConjuntoStatus;
@@ -39,6 +49,9 @@ export interface ConjuntoRequest {
   id: string;
   nameRequested: string;
   location: string;
+  mapUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
   description: string;
   logoUrl: string | null;
   contactEmail: string;
@@ -127,8 +140,14 @@ export interface SessionUser {
   id: string;
   name: string;
   email: string;
+  phone: string | null;
   role: UserRole;
   conjuntoId: string | null;
   avatarUrl: string | null;
   status: "active" | "blocked";
+  subscriptionPlan: "basic" | "plus";
+  subscriptionStatus: "inactive" | "pending" | "active";
+  subscriptionPaymentMethod: string | null;
+  subscriptionUpdatedAt: string | null;
+  emailVerifiedAt: string | null;
 }

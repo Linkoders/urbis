@@ -17,7 +17,7 @@ export default function TermsPage() {
 
         <div className="mt-8 space-y-5 text-zinc-300">
           <section>
-            <h2 className="text-xl font-semibold text-white">1. Responsabilidad de las publicaciones</h2>
+            <h2 className="text-xl font-semibold text-white">1. Responsabilidad de publicaciones</h2>
             <p className="mt-2">
               Cada usuario es responsable del contenido, calidad, entrega, garantía y cumplimiento de lo que publica o vende.
             </p>
@@ -42,8 +42,8 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-white">4. Reportes y acciones</h2>
             <p className="mt-2">
-              URBIS puede suspender o banear cuentas, retirar publicaciones y conservar evidencia cuando existan
-              indicios de incumplimiento. Si se detectan posibles delitos, se notificará a las autoridades correspondientes.
+              URBIS puede suspender o bloquear cuentas, retirar publicaciones y conservar evidencia cuando existan
+              indicios de incumplimiento. Si se detectan posibles delitos, se notificará a autoridades competentes.
             </p>
           </section>
 

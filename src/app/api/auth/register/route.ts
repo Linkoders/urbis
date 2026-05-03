@@ -1,6 +1,5 @@
 ﻿import { NextResponse } from "next/server";
 import {
-  SESSION_COOKIE,
   createId,
   createPasswordHash,
   pushInAppNotification,
@@ -9,9 +8,15 @@ import {
 } from "@/lib/urbis-store";
 import { prisma } from "@/lib/prisma";
 import { isBlobStorageUrl } from "@/lib/blob-utils";
+import { parseGoogleMapsLocation } from "@/lib/google-maps";
+import { sendEmailNotification } from "@/lib/email-service";
 import type { UserRole } from "@/lib/urbis-types";
 
 export const runtime = "nodejs";
+
+function createVerificationCode(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
 
 function isValidAvatarUrl(value: string): boolean {
   if (!value) return false;
@@ -31,6 +36,7 @@ export async function POST(request: Request) {
     const payload = (await request.json()) as {
       name?: string;
       email?: string;
+      phone?: string;
       password?: string;
       conjuntoSlug?: string;
       avatarUrl?: string;
@@ -38,6 +44,7 @@ export async function POST(request: Request) {
       role?: UserRole;
       requestedConjuntoName?: string;
       requestedConjuntoLocation?: string;
+      requestedConjuntoMapUrl?: string;
       requestedConjuntoDescription?: string;
       requestedConjuntoLogoUrl?: string;
       isEntrepreneur?: boolean;
@@ -46,6 +53,7 @@ export async function POST(request: Request) {
 
     const name = payload.name?.trim();
     const email = payload.email?.trim().toLowerCase();
+    const phone = String(payload.phone ?? "").trim();
     const password = payload.password?.trim();
     const role = payload.role === "admin_conjunto" ? "admin_conjunto" : "resident";
     const conjuntoSlug = payload.conjuntoSlug?.trim().toLowerCase() || null;
@@ -53,12 +61,17 @@ export async function POST(request: Request) {
     const acceptedTerms = payload.acceptedTerms === true;
     const requestedConjuntoName = String(payload.requestedConjuntoName ?? "").trim();
     const requestedConjuntoLocation = String(payload.requestedConjuntoLocation ?? "").trim();
+    const requestedConjuntoMapUrl = String(payload.requestedConjuntoMapUrl ?? "").trim();
     const requestedConjuntoDescription = String(payload.requestedConjuntoDescription ?? "").trim();
     const requestedConjuntoLogoUrl = String(payload.requestedConjuntoLogoUrl ?? "").trim();
     const isEntrepreneur = payload.isEntrepreneur === true || payload.isIndependent === true;
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: "Nombre, email y contraseña son obligatorios." }, { status: 400 });
+    }
+
+    if (!phone) {
+      return NextResponse.json({ error: "El número de teléfono es obligatorio." }, { status: 400 });
     }
 
     if (password.length < 6) {
@@ -94,25 +107,48 @@ export async function POST(request: Request) {
       );
     }
 
-    if (role === "admin_conjunto" && (!requestedConjuntoName || !requestedConjuntoLocation)) {
+    if (
+      role === "admin_conjunto" &&
+      (!requestedConjuntoName || !requestedConjuntoLocation || !requestedConjuntoMapUrl)
+    ) {
       return NextResponse.json(
-        { error: "Para crear cuenta como administrador debes enviar datos del conjunto." },
+        { error: "Para crear cuenta como administrador debes enviar nombre, ubicación y enlace de Google Maps del conjunto." },
+        { status: 400 },
+      );
+    }
+
+    const parsedMapsLocation =
+      role === "admin_conjunto"
+        ? parseGoogleMapsLocation(requestedConjuntoMapUrl)
+        : null;
+
+    if (role === "admin_conjunto" && !parsedMapsLocation) {
+      return NextResponse.json(
+        { error: "El enlace de Google Maps del conjunto no es válido." },
         { status: 400 },
       );
     }
 
     const userId = createId();
     const createdAt = new Date().toISOString();
+    const emailVerificationCode = createVerificationCode();
 
     db.users.push({
       id: userId,
       name,
       email,
+      phone,
       passwordHash: createPasswordHash(password),
       role,
       conjuntoId: role === "resident" ? conjunto?.id ?? null : null,
       avatarUrl,
       status: "active",
+      subscriptionPlan: "basic",
+      subscriptionStatus: "inactive",
+      subscriptionPaymentMethod: null,
+      subscriptionUpdatedAt: createdAt,
+      emailVerifiedAt: null,
+      emailVerificationCode,
       acceptedTermsAt: createdAt,
       createdAt,
     });
@@ -122,6 +158,9 @@ export async function POST(request: Request) {
         id: createId(),
         nameRequested: requestedConjuntoName,
         location: requestedConjuntoLocation,
+        mapUrl: parsedMapsLocation?.mapUrl ?? null,
+        latitude: parsedMapsLocation?.latitude ?? null,
+        longitude: parsedMapsLocation?.longitude ?? null,
         description: requestedConjuntoDescription,
         logoUrl: requestedConjuntoLogoUrl || null,
         contactEmail: email,
@@ -162,6 +201,16 @@ export async function POST(request: Request) {
 
     await writeDb(db);
 
+    const emailResult = await sendEmailNotification({
+      to: email,
+      subject: "Verifica tu correo en URBIS",
+      html: `<p>Hola ${name},</p>
+<p>Tu código de verificación es:</p>
+<p style="font-size:24px;font-weight:700;letter-spacing:3px">${emailVerificationCode}</p>
+<p>Ingresa este código en URBIS para activar tu cuenta.</p>`,
+      text: `Hola ${name}. Tu código de verificación de URBIS es ${emailVerificationCode}.`,
+    });
+
     await prisma.notificationPreferenceRecord.upsert({
       where: { userId },
       update: {},
@@ -193,7 +242,15 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({
       ok: true,
-      message:
+      message: emailResult.ok
+        ? "Cuenta creada. Revisa tu correo e ingresa el código de verificación."
+        : "Cuenta creada. No se pudo enviar correo, pero puedes verificar con el código de respaldo.",
+      requiresEmailVerification: true,
+      verificationFallbackCode:
+        !emailResult.ok && process.env.NODE_ENV !== "production"
+          ? emailVerificationCode
+          : undefined,
+      onboardingMessage:
         role === "admin_conjunto"
           ? "Cuenta creada. Tu solicitud de conjunto fue enviada."
           : "Cuenta creada correctamente.",
@@ -201,17 +258,15 @@ export async function POST(request: Request) {
         id: userId,
         name,
         email,
+        phone,
         role,
         conjuntoId: role === "resident" ? conjunto?.id ?? null : null,
         avatarUrl,
+        subscriptionPlan: "basic",
+        subscriptionStatus: "inactive",
+        subscriptionPaymentMethod: null,
+        subscriptionUpdatedAt: createdAt,
       },
-    });
-
-    response.cookies.set(SESSION_COOKIE, userId, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
     });
 
     return response;

@@ -18,8 +18,9 @@ interface CatalogProduct {
   category: string;
   image: string;
   viewCount: number;
+  distanceKm: number | null;
   rating: { average: number; total: number };
-  conjunto: { name: string };
+  conjunto: { name: string; mapUrl?: string | null };
   emprendimiento: { name: string };
 }
 
@@ -65,7 +66,7 @@ function ProductsContent() {
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [category, setCategory] = useState("all");
   const [conjunto, setConjunto] = useState(searchParams.get("conjunto") ?? "all");
-  const [sort, setSort] = useState("recent");
+  const [sort, setSort] = useState("nearest");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [onSaleOnly, setOnSaleOnly] = useState(searchParams.get("onSale") === "1");
@@ -75,6 +76,10 @@ function ProductsContent() {
   const [hasMore, setHasMore] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [geoLocation, setGeoLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const [locationPromptVisible, setLocationPromptVisible] = useState(false);
 
   const fetchPage = useCallback(
     async (nextOffset: number, replace: boolean) => {
@@ -90,6 +95,11 @@ function ProductsContent() {
         offset: String(nextOffset),
         limit: String(PAGE_SIZE),
       });
+
+      if (geoLocation) {
+        params.set("latitude", String(geoLocation.latitude));
+        params.set("longitude", String(geoLocation.longitude));
+      }
 
       const response = await fetch(`/api/catalog?${params.toString()}`, {
         cache: "no-store",
@@ -117,7 +127,7 @@ function ProductsContent() {
         return [...prev, ...(data.products ?? [])];
       });
     },
-    [search, category, conjunto, sort, minPrice, maxPrice, scope, onSaleOnly],
+    [search, category, conjunto, sort, minPrice, maxPrice, scope, onSaleOnly, geoLocation],
   );
 
   useEffect(() => {
@@ -130,6 +140,38 @@ function ProductsContent() {
 
     return () => clearTimeout(timeout);
   }, [fetchPage]);
+
+  const scopeError =
+    scope === "my_conjunto" && viewer && !viewer.conjuntoId
+      ? "Tu perfil no tiene un conjunto asignado para este filtro."
+      : "";
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const alreadyAnswered = window.localStorage.getItem("urbis-location-prompt-answer");
+    const storedLatitude = window.localStorage.getItem("urbis-user-latitude");
+    const storedLongitude = window.localStorage.getItem("urbis-user-longitude");
+
+    if (alreadyAnswered === "accepted" && storedLatitude && storedLongitude) {
+      const latitude = Number(storedLatitude);
+      const longitude = Number(storedLongitude);
+
+      if (!Number.isNaN(latitude) && !Number.isNaN(longitude)) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setGeoLocation({ latitude, longitude });
+        setSort((currentSort) => (currentSort === "recent" ? "nearest" : currentSort));
+        setLocationPromptVisible(false);
+        return;
+      }
+    }
+
+    if (!alreadyAnswered) {
+      setLocationPromptVisible(true);
+    }
+  }, []);
 
   useEffect(() => {
     const node = sentinelRef.current;
@@ -166,12 +208,53 @@ function ProductsContent() {
           conjunto !== "all" ||
           minPrice ||
           maxPrice ||
-          sort !== "recent" ||
+          sort !== "nearest" ||
           onSaleOnly ||
-          scope !== "all",
+          scope !== "all" ||
+          geoLocation !== null,
       ),
-    [search, category, conjunto, minPrice, maxPrice, sort, onSaleOnly, scope],
+    [search, category, conjunto, minPrice, maxPrice, sort, onSaleOnly, scope, geoLocation],
   );
+
+  function requestNearbyProducts() {
+    if (!navigator.geolocation) {
+      setLocationError("Tu navegador no permite geolocalizacion.");
+      return;
+    }
+
+    setLocating(true);
+    setLocationError("");
+    setLocationPromptVisible(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("urbis-location-prompt-answer", "accepted");
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("urbis-user-latitude", String(position.coords.latitude));
+          window.localStorage.setItem("urbis-user-longitude", String(position.coords.longitude));
+        }
+        setGeoLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setSort("nearest");
+        setLocating(false);
+      },
+      () => {
+        setLocationError("No se pudo obtener tu ubicacion.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
+    );
+  }
+
+  function dismissLocationPrompt() {
+    setLocationPromptVisible(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("urbis-location-prompt-answer", "dismissed");
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#070b10] text-zinc-100">
@@ -188,6 +271,36 @@ function ProductsContent() {
             por ofertas activas o por tu propio conjunto.
           </p>
         </div>
+
+        {locationPromptVisible ? (
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border border-emerald-300/25 bg-emerald-300/8 p-4 text-zinc-100">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-emerald-200">
+                Productos cercanos
+              </p>
+              <p className="mt-2 text-sm text-zinc-300">
+                Comparte tu ubicacion para que URBIS te muestre primero los productos y conjuntos mas cercanos a ti.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={requestNearbyProducts}
+                disabled={locating}
+                className="bg-emerald-300 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-black disabled:opacity-60"
+              >
+                {locating ? "Activando..." : "Usar mi ubicacion"}
+              </button>
+              <button
+                type="button"
+                onClick={dismissLocationPrompt}
+                className="border border-white/20 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-200 hover:border-white/60"
+              >
+                Ahora no
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div
           className="mt-10 grid gap-4 border border-white/10 bg-black/25 p-4 sm:grid-cols-2 lg:grid-cols-8 fade-up"
@@ -206,7 +319,7 @@ function ProductsContent() {
             onChange={(event) => setCategory(event.target.value)}
             className="border border-white/20 bg-black/40 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-emerald-300"
           >
-            <option value="all">Todas las categorías</option>
+            <option value="all">Todas las categorias</option>
             {categories.map((entry) => (
               <option key={entry} value={entry}>
                 {entry}
@@ -232,8 +345,9 @@ function ProductsContent() {
             onChange={(event) => setSort(event.target.value)}
             className="border border-white/20 bg-black/40 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-emerald-300"
           >
-            <option value="recent">Más recientes</option>
-            <option value="popular">Más vistos</option>
+            <option value="nearest">Mas cercanos</option>
+            <option value="recent">Mas recientes</option>
+            <option value="popular">Mas vistos</option>
             <option value="rating">Mejor valorados</option>
             <option value="price_asc">Precio: menor a mayor</option>
             <option value="price_desc">Precio: mayor a menor</option>
@@ -243,7 +357,7 @@ function ProductsContent() {
             type="number"
             value={minPrice}
             onChange={(event) => setMinPrice(event.target.value)}
-            placeholder="Precio mínimo"
+            placeholder="Precio minimo"
             className="border border-white/20 bg-black/40 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-emerald-300"
           />
 
@@ -251,7 +365,7 @@ function ProductsContent() {
             type="number"
             value={maxPrice}
             onChange={(event) => setMaxPrice(event.target.value)}
-            placeholder="Precio máximo"
+            placeholder="Precio maximo"
             className="border border-white/20 bg-black/40 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-emerald-300"
           />
 
@@ -264,6 +378,34 @@ function ProductsContent() {
             />
             Ofertas activas
           </label>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={requestNearbyProducts}
+            disabled={locating}
+            className="border border-emerald-300/60 bg-emerald-300/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-200 hover:border-emerald-300 disabled:opacity-60"
+          >
+            {locating ? "Buscando ubicacion..." : "Mostrar mas cercanos"}
+          </button>
+          {geoLocation ? (
+            <button
+              type="button"
+              onClick={() => {
+                setGeoLocation(null);
+                if (typeof window !== "undefined") {
+                  window.localStorage.removeItem("urbis-user-latitude");
+                  window.localStorage.removeItem("urbis-user-longitude");
+                  window.localStorage.setItem("urbis-location-prompt-answer", "dismissed");
+                }
+              }}
+              className="border border-white/20 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-200 hover:border-white/60"
+            >
+              Quitar ubicacion
+            </button>
+          ) : null}
+          {locationError ? <p className="text-sm text-amber-300">{locationError}</p> : null}
         </div>
 
         {viewer?.conjuntoId ? (
@@ -292,10 +434,11 @@ function ProductsContent() {
             </button>
           </div>
         ) : null}
+        {scopeError ? <p className="mt-3 text-sm text-amber-300">{scopeError}</p> : null}
 
         {hasFilters ? (
           <p className="mt-4 text-sm text-zinc-400">
-            Filtros activos. El listado se actualiza automáticamente.
+            Filtros activos. El listado se actualiza automaticamente.
           </p>
         ) : null}
 
@@ -348,6 +491,9 @@ function ProductsContent() {
                         </>
                       ) : null}
                     </div>
+                    {product.distanceKm !== null ? (
+                      <p className="text-xs text-zinc-300">{product.distanceKm.toFixed(1)} km de ti</p>
+                    ) : null}
                   </div>
                 </Link>
               ))}
