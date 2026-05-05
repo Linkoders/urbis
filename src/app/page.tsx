@@ -73,7 +73,7 @@ const benefits = [
       "Tus productos aparecen en un listado filtrable por categoría, precio y popularidad dentro de tu comunidad.",
   },
   {
-    title: "Confianza con moderacion",
+    title: "Confianza con moderación",
     description:
       "Cada emprendimiento pasa por revisión y aprobación, mejorando la calidad del contenido y la seguridad para vecinos.",
   },
@@ -83,7 +83,7 @@ const benefits = [
       "Define si tu emprendimiento es solo interno del conjunto o visible al público para escalar alcance.",
   },
   {
-    title: "Operacion simple",
+    title: "Operación simple",
     description:
       "Paneles simples para publicar, aprobar, pausar y analizar actividad sin depender de procesos manuales.",
   },
@@ -162,7 +162,7 @@ export default function Home() {
           conjuntos: incomingStats.conjuntos ?? 0,
           emprendimientos: incomingStats.emprendimientos ?? 0,
           productos: incomingStats.productos ?? 0,
-          resenas: incomingStats.resenas ?? incomingStats.resenas ?? 0,
+          resenas: incomingStats.resenas ?? 0,
           visitas: incomingStats.visitas ?? 0,
         });
         setConjuntos((statsData.conjuntos ?? []).slice(0, 6));
@@ -689,7 +689,7 @@ export default function Home() {
               Comunidades que ya comercian dentro de URBIS.
             </h3>
             <p className="mt-6 text-lg leading-relaxed text-zinc-300">
-              Monitorea productos, resenas y visitas para entender qué conjuntos
+              Monitorea productos, reseñas y visitas para entender qué conjuntos
               están acelerando su economía local.
             </p>
             <div className="mt-8 grid grid-cols-2 gap-4">
@@ -765,7 +765,7 @@ export default function Home() {
                       <span data-count={conjunto.products}>{conjunto.products}</span> productos
                     </p>
                     <p className="text-sm text-zinc-400">
-                      <span data-count={conjunto.reviews}>{conjunto.reviews}</span> resenas
+                      <span data-count={conjunto.reviews}>{conjunto.reviews}</span> reseñas
                     </p>
                   </Link>
                 ))}
@@ -1060,7 +1060,7 @@ export default function Home() {
 
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-              Organizacion
+              Organización
             </p>
             <ul className="mt-3 space-y-2 text-sm">
               <li>

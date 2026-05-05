@@ -16,15 +16,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "productId requerido." }, { status: 400 });
   }
 
-  const favorite = await prisma.userFavoriteProductRecord.findUnique({
-    where: {
-      userId_productId: {
-        userId: user.id,
-        productId,
-      },
-    },
-  });
-
   const recentInterest = await prisma.productInterestRecord.findFirst({
     where: {
       userId: user.id,
@@ -35,7 +26,6 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({
-    favorite: Boolean(favorite),
     interested: Boolean(recentInterest),
   });
 }
@@ -48,12 +38,12 @@ export async function POST(request: NextRequest) {
 
   const payload = (await request.json()) as {
     productId?: string;
-    action?: "favorite" | "unfavorite" | "interest";
+    action?: "interest";
   };
   const productId = String(payload.productId ?? "").trim();
   const action = payload.action;
-  if (!productId || !action) {
-    return NextResponse.json({ error: "Datos inválidos." }, { status: 400 });
+  if (!productId || action !== "interest") {
+    return NextResponse.json({ error: "Datos invalidos." }, { status: 400 });
   }
 
   const db = await readDb();
@@ -71,52 +61,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No autorizado para este producto." }, { status: 403 });
   }
 
-  if (action === "favorite") {
-    await prisma.userFavoriteProductRecord.upsert({
-      where: {
-        userId_productId: {
-          userId: user.id,
-          productId,
-        },
-      },
-      update: {},
-      create: {
-        userId: user.id,
-        productId,
-      },
-    });
-
-    if (product.ownerId !== user.id) {
-      await prisma.notificationRecord.create({
-        data: {
-          id: randomUUID(),
-          userId: product.ownerId,
-          type: "new_favorite",
-          channel: "in_app",
-          status: "queued",
-          metadata: {
-            message: `${user.name} agregó tu producto "${product.name}" a favoritos.`,
-            productId: product.id,
-            productSlug: product.slug,
-          },
-          createdAt: new Date(),
-        },
-      });
-    }
-
-    return NextResponse.json({ ok: true, favorite: true });
-  }
-
-  if (action === "unfavorite") {
-    await prisma.userFavoriteProductRecord.deleteMany({
-      where: {
-        userId: user.id,
-        productId,
-      },
-    });
-    return NextResponse.json({ ok: true, favorite: false });
-  }
-
   await prisma.productInterestRecord.create({
     data: {
       userId: user.id,
@@ -125,6 +69,43 @@ export async function POST(request: NextRequest) {
       source: "manual_interest",
       weight: 2,
       lastInteractedAt: new Date(),
+    },
+  });
+
+  await prisma.emprendimientoFollowRecord.upsert({
+    where: {
+      userId_emprendimientoId: {
+        userId: user.id,
+        emprendimientoId: emprendimiento.id,
+      },
+    },
+    update: {
+      notifyNewProducts: true,
+      updatedAt: new Date(),
+    },
+    create: {
+      userId: user.id,
+      emprendimientoId: emprendimiento.id,
+      notifyNewProducts: true,
+    },
+  });
+
+  await prisma.notificationPreferenceRecord.upsert({
+    where: { userId: user.id },
+    update: {
+      wantsProductNotifications: true,
+      wantsEmail: true,
+      respondedAt: new Date(),
+    },
+    create: {
+      userId: user.id,
+      wantsProductNotifications: true,
+      wantsAnnouncementNotifications: true,
+      wantsPersonalizedRecommendations: true,
+      wantsEmail: true,
+      wantsPush: false,
+      askedAt: new Date(),
+      respondedAt: new Date(),
     },
   });
 
@@ -137,14 +118,15 @@ export async function POST(request: NextRequest) {
         channel: "in_app",
         status: "queued",
         metadata: {
-          message: `${user.name} marcó interés en "${product.name}".`,
+          message: `${user.name} marco interes en "${product.name}" y activo alertas de nuevos productos.`,
           productId: product.id,
           productSlug: product.slug,
+          emprendimientoId: emprendimiento.id,
         },
         createdAt: new Date(),
       },
     });
   }
 
-  return NextResponse.json({ ok: true, interested: true });
+  return NextResponse.json({ ok: true, interested: true, subscribed: true });
 }

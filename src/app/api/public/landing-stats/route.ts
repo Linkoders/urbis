@@ -53,8 +53,8 @@ export async function GET() {
 
   return NextResponse.json({
     stats: {
-      conjuntos: approvedConjuntos.length,
-      emprendimientos: approvedEmprendimientos.length,
+      conjuntos: db.conjuntos.length,
+      emprendimientos: db.emprendimientos.length,
       productos: publishedProducts.length,
       resenas: visibleReviews.length,
       visitas: totalViews,

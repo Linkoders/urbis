@@ -66,7 +66,7 @@ function ProductsContent() {
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [category, setCategory] = useState("all");
   const [conjunto, setConjunto] = useState(searchParams.get("conjunto") ?? "all");
-  const [sort, setSort] = useState("nearest");
+  const [sort, setSort] = useState("recent");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [onSaleOnly, setOnSaleOnly] = useState(searchParams.get("onSale") === "1");
@@ -208,7 +208,7 @@ function ProductsContent() {
           conjunto !== "all" ||
           minPrice ||
           maxPrice ||
-          sort !== "nearest" ||
+          sort !== "recent" ||
           onSaleOnly ||
           scope !== "all" ||
           geoLocation !== null,
@@ -218,7 +218,7 @@ function ProductsContent() {
 
   function requestNearbyProducts() {
     if (!navigator.geolocation) {
-      setLocationError("Tu navegador no permite geolocalizacion.");
+      setLocationError("Tu navegador no permite geolocalización.");
       return;
     }
 
@@ -242,7 +242,7 @@ function ProductsContent() {
         setLocating(false);
       },
       () => {
-        setLocationError("No se pudo obtener tu ubicacion.");
+        setLocationError("No se pudo obtener tu ubicación.");
         setLocating(false);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
@@ -279,7 +279,7 @@ function ProductsContent() {
                 Productos cercanos
               </p>
               <p className="mt-2 text-sm text-zinc-300">
-                Comparte tu ubicacion para que URBIS te muestre primero los productos y conjuntos mas cercanos a ti.
+                Comparte tu ubicación para que URBIS te muestre primero los productos y conjuntos más cercanos a ti.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -289,7 +289,7 @@ function ProductsContent() {
                 disabled={locating}
                 className="bg-emerald-300 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-black disabled:opacity-60"
               >
-                {locating ? "Activando..." : "Usar mi ubicacion"}
+                {locating ? "Activando..." : "Usar mi ubicación"}
               </button>
               <button
                 type="button"
@@ -319,7 +319,7 @@ function ProductsContent() {
             onChange={(event) => setCategory(event.target.value)}
             className="border border-white/20 bg-black/40 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-emerald-300"
           >
-            <option value="all">Todas las categorias</option>
+            <option value="all">Todas las categorías</option>
             {categories.map((entry) => (
               <option key={entry} value={entry}>
                 {entry}
@@ -345,9 +345,9 @@ function ProductsContent() {
             onChange={(event) => setSort(event.target.value)}
             className="border border-white/20 bg-black/40 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-emerald-300"
           >
-            <option value="nearest">Mas cercanos</option>
-            <option value="recent">Mas recientes</option>
-            <option value="popular">Mas vistos</option>
+            <option value="nearest">Más cercanos</option>
+            <option value="recent">Más recientes</option>
+            <option value="popular">Más vistos</option>
             <option value="rating">Mejor valorados</option>
             <option value="price_asc">Precio: menor a mayor</option>
             <option value="price_desc">Precio: mayor a menor</option>
@@ -357,7 +357,7 @@ function ProductsContent() {
             type="number"
             value={minPrice}
             onChange={(event) => setMinPrice(event.target.value)}
-            placeholder="Precio minimo"
+            placeholder="Precio mínimo"
             className="border border-white/20 bg-black/40 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-emerald-300"
           />
 
@@ -365,7 +365,7 @@ function ProductsContent() {
             type="number"
             value={maxPrice}
             onChange={(event) => setMaxPrice(event.target.value)}
-            placeholder="Precio maximo"
+            placeholder="Precio máximo"
             className="border border-white/20 bg-black/40 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-emerald-300"
           />
 
@@ -387,7 +387,7 @@ function ProductsContent() {
             disabled={locating}
             className="border border-emerald-300/60 bg-emerald-300/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-200 hover:border-emerald-300 disabled:opacity-60"
           >
-            {locating ? "Buscando ubicacion..." : "Mostrar mas cercanos"}
+            {locating ? "Buscando ubicación..." : "Mostrar más cercanos"}
           </button>
           {geoLocation ? (
             <button
@@ -402,7 +402,7 @@ function ProductsContent() {
               }}
               className="border border-white/20 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-200 hover:border-white/60"
             >
-              Quitar ubicacion
+              Quitar ubicación
             </button>
           ) : null}
           {locationError ? <p className="text-sm text-amber-300">{locationError}</p> : null}
@@ -438,7 +438,7 @@ function ProductsContent() {
 
         {hasFilters ? (
           <p className="mt-4 text-sm text-zinc-400">
-            Filtros activos. El listado se actualiza automaticamente.
+            Filtros activos. El listado se actualiza automáticamente.
           </p>
         ) : null}
 
@@ -504,7 +504,7 @@ function ProductsContent() {
         <div ref={sentinelRef} className="h-12" />
         {loadingMore ? (
           <div className="flex items-center justify-center">
-            <Spinner label="Cargando mas productos" />
+            <Spinner label="Cargando más productos" />
           </div>
         ) : null}
       </section>

@@ -40,8 +40,15 @@ export default function NewEmprendimientoPage() {
     void loadSession();
   }, []);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const nativeEvent = event.nativeEvent as SubmitEvent;
+    const submitter = nativeEvent.submitter as HTMLElement | null;
+    const isExplicitCreate = submitter?.getAttribute("data-action") === "create-emprendimiento";
+    if (step !== 2 || !isExplicitCreate) {
+      return;
+    }
+
     setError("");
     setLoading(true);
 
@@ -228,6 +235,7 @@ export default function NewEmprendimientoPage() {
             ) : (
               <button
                 type="submit"
+                data-action="create-emprendimiento"
                 disabled={loading}
                 className="bg-zinc-100 px-5 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-black hover:bg-white disabled:opacity-60"
               >

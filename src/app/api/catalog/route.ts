@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
   const search = request.nextUrl.searchParams.get("search")?.toLowerCase() ?? "";
   const category = request.nextUrl.searchParams.get("category") ?? "all";
   const conjuntoSlug = request.nextUrl.searchParams.get("conjunto") ?? "all";
-  const sort = request.nextUrl.searchParams.get("sort") ?? "nearest";
+  const sort = request.nextUrl.searchParams.get("sort") ?? "recent";
   const onSaleOnly = request.nextUrl.searchParams.get("onSale") === "1";
   const scope = request.nextUrl.searchParams.get("scope") ?? "all";
   const minPrice = safeNumber(request.nextUrl.searchParams.get("minPrice"));

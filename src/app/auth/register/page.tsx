@@ -257,7 +257,10 @@ export default function RegisterPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (step !== 4) {
+    const nativeEvent = event.nativeEvent as SubmitEvent;
+    const submitter = nativeEvent.submitter as HTMLElement | null;
+    const isExplicitCreate = submitter?.getAttribute("data-action") === "create-account";
+    if (step !== 4 || !isExplicitCreate) {
       return;
     }
 
@@ -649,6 +652,7 @@ export default function RegisterPage() {
               ) : (
                 <button
                   type="submit"
+                  data-action="create-account"
                   disabled={loading}
                   className="bg-zinc-100 px-5 py-3 text-sm font-bold uppercase tracking-[0.16em] text-black transition hover:bg-white disabled:opacity-70"
                 >

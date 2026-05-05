@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -47,10 +47,12 @@ interface SessionData {
 }
 
 function Stars({ value }: { value: number }) {
+  const star = String.fromCharCode(9733);
+
   return (
     <span className="text-amber-300">
-      {"â˜…".repeat(Math.max(0, Math.min(5, value)))}
-      <span className="text-zinc-600">{"â˜…".repeat(Math.max(0, 5 - value))}</span>
+      {star.repeat(Math.max(0, Math.min(5, value)))}
+      <span className="text-zinc-600">{star.repeat(Math.max(0, 5 - value))}</span>
     </span>
   );
 }
@@ -86,7 +88,6 @@ export default function ProductDetailPage() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [message, setMessage] = useState("");
-  const [favorite, setFavorite] = useState(false);
   const [interested, setInterested] = useState(false);
   const [preferenceLoading, setPreferenceLoading] = useState(false);
 
@@ -137,7 +138,6 @@ export default function ProductDetailPage() {
   useEffect(() => {
     async function loadPreferences() {
       if (!session.authenticated || !product) {
-        setFavorite(false);
         setInterested(false);
         return;
       }
@@ -151,10 +151,8 @@ export default function ProductDetailPage() {
       }
 
       const data = (await response.json()) as {
-        favorite?: boolean;
         interested?: boolean;
       };
-      setFavorite(Boolean(data.favorite));
       setInterested(Boolean(data.interested));
     }
 
@@ -183,18 +181,18 @@ export default function ProductDetailPage() {
 
     const data = (await response.json()) as { message?: string; error?: string };
     if (!response.ok) {
-      setMessage(data.error ?? "No se pudo guardar la reseÃ±a.");
+      setMessage(data.error ?? "No se pudo guardar la reseña.");
       return;
     }
 
-    setMessage(data.message ?? "ReseÃ±a agregada.");
+    setMessage(data.message ?? "Reseña agregada.");
     setReviewComment("");
     await loadDetail();
   }
 
-  async function setProductPreference(action: "favorite" | "unfavorite" | "interest") {
+  async function setProductPreference() {
     if (!product || !session.authenticated) {
-      setMessage("Inicia sesiÃ³n para guardar preferencias.");
+      setMessage("Inicia sesión para activar alertas de nuevos productos.");
       return;
     }
 
@@ -206,7 +204,7 @@ export default function ProductDetailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         productId: product.id,
-        action,
+        action: "interest",
       }),
     });
 
@@ -217,16 +215,8 @@ export default function ProductDetailPage() {
       return;
     }
 
-    if (action === "favorite") {
-      setFavorite(true);
-      setMessage("Producto agregado a favoritos.");
-    } else if (action === "unfavorite") {
-      setFavorite(false);
-      setMessage("Producto eliminado de favoritos.");
-    } else {
-      setInterested(true);
-      setMessage("Marcado como me interesa.");
-    }
+    setInterested(true);
+    setMessage("Te avisaremos por correo cuando este emprendimiento publique productos nuevos.");
 
     setPreferenceLoading(false);
   }
@@ -321,7 +311,7 @@ export default function ProductDetailPage() {
             <div className="flex items-center justify-between border-y border-white/10 py-3 text-sm text-zinc-300">
               <span>{product.viewCount} vistas</span>
               <span>
-                <Stars value={Math.round(product.rating.average)} /> - {product.rating.total} reseÃ±as
+                <Stars value={Math.round(product.rating.average)} /> - {product.rating.total} reseñas
               </span>
             </div>
 
@@ -340,7 +330,7 @@ export default function ProductDetailPage() {
                   <p className="font-semibold text-white">{product.emprendimiento.name}</p>
                   <p className="text-xs uppercase tracking-[0.12em] text-zinc-400">
                     {product.emprendimiento.visibility === "public"
-                      ? "Visible pÃºblicamente"
+                      ? "Visible públicamente"
                       : "Visible solo en el conjunto"}
                   </p>
                 </div>
@@ -349,7 +339,7 @@ export default function ProductDetailPage() {
                 Contacto: {product.emprendimiento.contactEmail || "No definido"}
               </p>
               <p className="text-sm text-zinc-300">
-                TelÃ©fono: {product.emprendimiento.contactPhone || "No definido"}
+                Teléfono: {product.emprendimiento.contactPhone || "No definido"}
               </p>
               <div className="flex flex-wrap gap-2">
                 {product.emprendimiento.contactPhone ? (
@@ -371,22 +361,14 @@ export default function ProductDetailPage() {
                   </a>
                 ) : null}
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div>
                 <button
                   type="button"
-                  onClick={() => void setProductPreference(favorite ? "unfavorite" : "favorite")}
-                  disabled={preferenceLoading}
-                  className={`border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] disabled:opacity-60 ${favorite ? "border-amber-300 text-amber-200" : "border-white/30 text-zinc-100 hover:border-white"}`}
-                >
-                  {favorite ? "Quitar favorito" : "Agregar favorito"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void setProductPreference("interest")}
+                  onClick={() => void setProductPreference()}
                   disabled={preferenceLoading || interested}
-                  className={`border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] disabled:opacity-60 ${interested ? "border-emerald-300 text-emerald-200" : "border-white/30 text-zinc-100 hover:border-white"}`}
+                  className={`w-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] disabled:opacity-60 ${interested ? "border-emerald-300 text-emerald-200" : "border-white/30 text-zinc-100 hover:border-white"}`}
                 >
-                  {interested ? "Te interesa" : "Me interesa"}
+                  {interested ? "Alertas activadas" : "Me interesa"}
                 </button>
               </div>
             </div>
@@ -396,7 +378,7 @@ export default function ProductDetailPage() {
         <section className="mt-12 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
           {session.authenticated ? (
             <form className="space-y-3 border border-white/10 bg-black/25 p-5" onSubmit={submitReview}>
-              <h2 className="text-2xl font-semibold text-white">Escribe tu reseÃ±a</h2>
+              <h2 className="text-2xl font-semibold text-white">Escribe tu reseña</h2>
               <div className="flex items-center gap-2">
                 {[1, 2, 3, 4, 5].map((value) => (
                   <button
@@ -405,7 +387,7 @@ export default function ProductDetailPage() {
                     onClick={() => setReviewRating(value)}
                     className={`text-2xl ${reviewRating >= value ? "text-amber-300" : "text-zinc-500"}`}
                   >
-                    â˜…
+                    {String.fromCharCode(9733)}
                   </button>
                 ))}
                 <span className="text-sm text-zinc-300">{reviewRating}/5</span>
@@ -421,29 +403,29 @@ export default function ProductDetailPage() {
                 type="submit"
                 className="w-full bg-zinc-100 px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-black hover:bg-white"
               >
-                Publicar reseÃ±a
+                Publicar reseña
               </button>
               {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
             </form>
           ) : (
             <div className="border border-white/10 bg-black/25 p-5">
-              <h2 className="text-2xl font-semibold text-white">Participa con reseÃ±as</h2>
+              <h2 className="text-2xl font-semibold text-white">Participa con reseñas</h2>
               <p className="mt-3 text-zinc-300">
-                Inicia sesiÃ³n para valorar este producto y ayudar a otros vecinos.
+                Inicia sesión para valorar este producto y ayudar a otros vecinos.
               </p>
               <Link
                 href="/auth/login"
                 className="mt-4 inline-block border border-white/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] hover:border-white"
               >
-                Iniciar sesiÃ³n
+                Iniciar sesión
               </Link>
             </div>
           )}
 
           <div className="space-y-4 border border-white/10 bg-black/25 p-5">
-            <h2 className="text-2xl font-semibold text-white">ReseÃ±as del producto</h2>
+            <h2 className="text-2xl font-semibold text-white">Reseñas del producto</h2>
             {product.reviews.length === 0 ? (
-              <p className="text-zinc-400">Este producto todavÃ­a no tiene reseÃ±as.</p>
+              <p className="text-zinc-400">Este producto todavía no tiene reseñas.</p>
             ) : (
               product.reviews.map((review) => (
                 <article key={review.id} className="border border-white/10 bg-black/35 p-4">
