@@ -65,6 +65,7 @@ export async function POST(request: Request) {
     const requestedConjuntoDescription = String(payload.requestedConjuntoDescription ?? "").trim();
     const requestedConjuntoLogoUrl = String(payload.requestedConjuntoLogoUrl ?? "").trim();
     const isEntrepreneur = payload.isEntrepreneur === true || payload.isIndependent === true;
+    const isIndependentResident = role === "resident" && !conjuntoSlug;
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: "Nombre, email y contraseña son obligatorios." }, { status: 400 });
@@ -99,13 +100,6 @@ export async function POST(request: Request) {
     }
 
     const conjunto = db.conjuntos.find((entry) => entry.slug === conjuntoSlug && entry.status === "approved");
-
-    if (role === "resident" && !conjunto && !isEntrepreneur) {
-      return NextResponse.json(
-        { error: "Debes seleccionar un conjunto válido para registrarte." },
-        { status: 400 },
-      );
-    }
 
     if (
       role === "admin_conjunto" &&
@@ -195,7 +189,9 @@ export async function POST(request: Request) {
         db,
         userId,
         "welcome",
-        "Bienvenido a URBIS. Ya puedes explorar y publicar en tu conjunto.",
+        isIndependentResident
+          ? "Bienvenido a URBIS. Puedes publicar como emprendedor no verificado mientras te vinculas a un conjunto."
+          : "Bienvenido a URBIS. Ya puedes explorar y publicar en tu conjunto.",
       );
     }
 
@@ -224,7 +220,7 @@ export async function POST(request: Request) {
       },
     });
 
-    if (isEntrepreneur || role === "admin_conjunto") {
+    if (isEntrepreneur || role === "admin_conjunto" || isIndependentResident) {
       await prisma.entrepreneurProfileRecord.upsert({
         where: { userId },
         update: {

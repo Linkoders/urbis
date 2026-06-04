@@ -44,6 +44,16 @@ interface PendingConjuntoRequest {
   createdAt: string;
 }
 
+interface PendingPlusRequest {
+  userId: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  proofUrl: string | null;
+  amountUsd: number;
+  requestedAt: string;
+}
+
 async function callAction(action: string, data: Record<string, unknown>) {
   const response = await fetch("/api/platform/actions", {
     method: "POST",
@@ -68,6 +78,7 @@ export default function PanelPage() {
   const [conjuntos, setConjuntos] = useState<ConjuntoCard[]>([]);
   const [emprendimientos, setEmprendimientos] = useState<EmprendimientoCard[]>([]);
   const [pendingConjuntoRequests, setPendingConjuntoRequests] = useState<PendingConjuntoRequest[]>([]);
+  const [pendingPlusRequests, setPendingPlusRequests] = useState<PendingPlusRequest[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<{
     kind: "conjunto" | "emprendimiento";
     id: string;
@@ -91,6 +102,7 @@ export default function PanelPage() {
       conjuntos?: ConjuntoCard[];
       emprendimientos?: EmprendimientoCard[];
       pendingConjuntoRequests?: PendingConjuntoRequest[];
+      pendingPlusRequests?: PendingPlusRequest[];
     };
 
     setUser(data.user);
@@ -99,6 +111,7 @@ export default function PanelPage() {
     setPendingConjuntoRequests(
       data.user.role === "superadmin" ? data.pendingConjuntoRequests ?? [] : [],
     );
+    setPendingPlusRequests(data.user.role === "superadmin" ? data.pendingPlusRequests ?? [] : []);
 
     setLoading(false);
   }
@@ -160,6 +173,19 @@ export default function PanelPage() {
       await loadData();
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : "No se pudo actualizar el estado.");
+    }
+  }
+
+  async function processPlusRequest(userId: string, status: "active" | "rejected") {
+    setMessage("");
+    setError("");
+
+    try {
+      const result = await callAction("set_plus_status", { userId, status });
+      setMessage(result);
+      await loadData();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : "No se pudo procesar la solicitud Plus.");
     }
   }
 
@@ -273,6 +299,57 @@ export default function PanelPage() {
                         <button
                           type="button"
                           onClick={() => void processConjuntoRequest(request.id, "rejected")}
+                          className="border border-red-300 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-red-200 hover:bg-red-500/10"
+                        >
+                          Rechazar
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold text-white">Solicitudes Plus pendientes</h2>
+              {pendingPlusRequests.length === 0 ? (
+                <p className="text-sm text-zinc-400">No hay solicitudes Plus pendientes.</p>
+              ) : (
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {pendingPlusRequests.map((request) => (
+                    <article key={request.userId} className="border border-white/10 bg-black/25 p-5">
+                      <p className="text-sm font-semibold text-white">{request.name}</p>
+                      <p className="mt-1 text-xs text-zinc-300">{request.email}</p>
+                      <p className="text-xs text-zinc-400">{request.phone || "Sin teléfono"}</p>
+                      <p className="mt-2 text-xs uppercase tracking-[0.12em] text-cyan-300">
+                        Monto esperado: USD {request.amountUsd.toFixed(2)}
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-500">
+                        Solicitado: {new Date(request.requestedAt).toLocaleString("es-EC")}
+                      </p>
+                      {request.proofUrl ? (
+                        <a
+                          href={request.proofUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-3 inline-block text-xs text-cyan-300 underline"
+                        >
+                          Ver comprobante
+                        </a>
+                      ) : (
+                        <p className="mt-3 text-xs text-amber-300">Sin comprobante adjunto.</p>
+                      )}
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void processPlusRequest(request.userId, "active")}
+                          className="border border-emerald-300 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-200 hover:bg-emerald-500/10"
+                        >
+                          Aprobar Plus
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void processPlusRequest(request.userId, "rejected")}
                           className="border border-red-300 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-red-200 hover:bg-red-500/10"
                         >
                           Rechazar

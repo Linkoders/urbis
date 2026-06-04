@@ -1,12 +1,13 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { FullScreenSpinner, Spinner } from "@/components/spinner";
+import { uploadImageFiles } from "@/lib/upload-client";
+import { PLUS_PRICE_USD } from "@/config/subscription";
 
 type SubscriptionPlan = "basic" | "plus";
 type SubscriptionStatus = "inactive" | "pending" | "active";
-type PaymentMethod = "kushki" | "paypal";
 
 interface ProfilePayload {
   id: string;
@@ -18,21 +19,19 @@ interface ProfilePayload {
   subscriptionPlan: SubscriptionPlan;
   subscriptionStatus: SubscriptionStatus;
   subscriptionPaymentMethod: string | null;
+  subscriptionPaymentProofUrl: string | null;
   subscriptionUpdatedAt: string | null;
 }
 
 interface PaymentOptions {
-  kushkiUrl: string;
-  paypalUrl: string;
+  pichinchaAccountNumber: string;
+  pichinchaAccountType: string;
+  pichinchaAccountHolder: string;
   supportEmail: string;
   supportPhone: string;
   supportPhoneAlt: string;
+  plusPriceUsd?: number;
 }
-
-const paymentLabels: Record<PaymentMethod, string> = {
-  kushki: "Kushki",
-  paypal: "PayPal",
-};
 
 function statusLabel(status: SubscriptionStatus): string {
   if (status === "active") return "Activa";
@@ -52,19 +51,8 @@ export default function PerfilPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [plan, setPlan] = useState<SubscriptionPlan>("basic");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("kushki");
-
-  const selectedPaymentHref = useMemo(() => {
-    if (!paymentOptions) {
-      return "";
-    }
-
-    if (paymentMethod === "kushki") {
-      return paymentOptions.kushkiUrl;
-    }
-
-    return paymentOptions.paypalUrl;
-  }, [paymentMethod, paymentOptions]);
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+  const [paymentProofPreview, setPaymentProofPreview] = useState("");
 
   useEffect(() => {
     async function loadProfile() {
@@ -85,18 +73,45 @@ export default function PerfilPage() {
       setName(data.profile.name);
       setPhone(data.profile.phone ?? "");
       setPlan(data.profile.subscriptionPlan);
-      setPaymentMethod(data.profile.subscriptionPaymentMethod === "paypal" ? "paypal" : "kushki");
+      setPaymentProofPreview(data.profile.subscriptionPaymentProofUrl ?? "");
       setLoading(false);
     }
 
     void loadProfile();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (paymentProofPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(paymentProofPreview);
+      }
+    };
+  }, [paymentProofPreview]);
+
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
     setError("");
     setMessage("");
+
+    let paymentProofUrl = profile?.subscriptionPaymentProofUrl ?? "";
+
+    if (plan === "plus" && paymentProofFile) {
+      try {
+        const [uploadedProofUrl] = await uploadImageFiles([paymentProofFile]);
+        paymentProofUrl = uploadedProofUrl ?? "";
+      } catch (uploadError) {
+        setError(uploadError instanceof Error ? uploadError.message : "No se pudo subir el comprobante.");
+        setSaving(false);
+        return;
+      }
+    }
+
+    if (plan === "plus" && !paymentProofUrl) {
+      setError("Debes adjuntar la foto del comprobante de depósito para solicitar Plus.");
+      setSaving(false);
+      return;
+    }
 
     const response = await fetch("/api/user/profile", {
       method: "PUT",
@@ -105,7 +120,7 @@ export default function PerfilPage() {
         name,
         phone,
         subscriptionPlan: plan,
-        paymentMethod: plan === "plus" ? paymentMethod : undefined,
+        paymentProofUrl: plan === "plus" ? paymentProofUrl : undefined,
       }),
     });
 
@@ -124,6 +139,8 @@ export default function PerfilPage() {
 
     setProfile(data.profile);
     setPaymentOptions(data.paymentOptions ?? paymentOptions);
+    setPaymentProofFile(null);
+    setPaymentProofPreview(data.profile.subscriptionPaymentProofUrl ?? "");
     setMessage(data.message ?? "Perfil actualizado.");
     setSaving(false);
   }
@@ -144,6 +161,8 @@ export default function PerfilPage() {
       </main>
     );
   }
+
+  const plusPrice = paymentOptions.plusPriceUsd ?? PLUS_PRICE_USD;
 
   return (
     <main className="min-h-screen bg-[#070b10] px-6 py-10 text-zinc-100 lg:px-12 urbis-watermark">
@@ -203,51 +222,73 @@ export default function PerfilPage() {
                   onChange={() => setPlan("plus")}
                   className="mr-2 accent-cyan-300"
                 />
-                Plus (con pago)
+                Plus (USD {plusPrice.toFixed(2)})
               </label>
             </div>
 
             {plan === "plus" ? (
               <div className="space-y-4 border border-cyan-300/25 bg-cyan-300/5 p-4">
                 <p className="text-sm text-zinc-200">
-                  Selecciona el método de pago digital. Para suscripción no recibimos transferencias directas a cuenta.
+                  Deposita USD {plusPrice.toFixed(2)} a la cuenta de Pichincha y adjunta la foto del comprobante.
                 </p>
 
-                <select
-                  value={paymentMethod}
-                  onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}
-                  className="w-full border border-white/20 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-cyan-300"
-                >
-                  <option value="kushki">{paymentLabels.kushki}</option>
-                  <option value="paypal">{paymentLabels.paypal}</option>
-                </select>
+                <div className="grid gap-3 text-sm text-zinc-200 sm:grid-cols-3">
+                  <p>
+                    <span className="font-semibold">Titular:</span> {paymentOptions.pichinchaAccountHolder || "Pendiente"}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Tipo:</span> {paymentOptions.pichinchaAccountType || "Pendiente"}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Cuenta:</span> {paymentOptions.pichinchaAccountNumber || "Pendiente"}
+                  </p>
+                </div>
 
-                <div>
-                  {selectedPaymentHref ? (
+                <div className="space-y-2">
+                  <label className="block text-xs uppercase tracking-[0.12em] text-zinc-400">
+                    Foto del comprobante de depósito
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      setPaymentProofFile(file);
+
+                      if (paymentProofPreview.startsWith("blob:")) {
+                        URL.revokeObjectURL(paymentProofPreview);
+                      }
+
+                      if (!file) {
+                        setPaymentProofPreview(profile.subscriptionPaymentProofUrl ?? "");
+                        return;
+                      }
+
+                      setPaymentProofPreview(URL.createObjectURL(file));
+                    }}
+                    className="w-full border border-white/20 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-cyan-300"
+                  />
+                  {paymentProofPreview ? (
                     <a
-                      href={selectedPaymentHref}
+                      href={paymentProofPreview}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-block border border-cyan-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-cyan-200 hover:bg-cyan-500/10"
+                      className="inline-block text-xs text-cyan-200 underline"
                     >
-                      Ir a pagar con {paymentLabels[paymentMethod]}
+                      Ver comprobante adjunto
                     </a>
                   ) : (
-                    <p className="text-xs text-zinc-400">
-                      Configura el enlace de {paymentLabels[paymentMethod]} en variables de entorno.
-                    </p>
+                    <p className="text-xs text-zinc-400">Aún no has adjuntado comprobante.</p>
                   )}
                 </div>
 
                 <div className="space-y-1 text-xs text-zinc-300">
-                  <p>
-                    Si requieren hacer transferencia bancaria, comuníquense con nosotros por correo o números de soporte.
-                  </p>
+                  <p>Tu solicitud quedará en estado pendiente hasta validación manual.</p>
                   {paymentOptions.supportEmail ? (
                     <p>
-                      Correo: {" "}
+                      Correo:{" "}
                       <a
-                        href={`mailto:${paymentOptions.supportEmail}?subject=Solicitud%20Plan%20Plus%20URBIS`}
+                        href={`mailto:${paymentOptions.supportEmail}?subject=Comprobante%20Plan%20Plus%20URBIS`}
                         className="text-emerald-300 underline"
                       >
                         {paymentOptions.supportEmail}

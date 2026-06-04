@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
     db.emprendimientos.map((entry) => [entry.id, entry] as const),
   );
   const conjuntoById = new Map(db.conjuntos.map((entry) => [entry.id, entry] as const));
+  const userById = new Map(db.users.map((entry) => [entry.id, entry] as const));
   const ratingByProductId = buildRatingsByProductId(db.reviews);
 
   const items = db.products.flatMap((product) => {
@@ -84,6 +85,15 @@ export async function GET(request: NextRequest) {
     }
 
     const rating = ratingByProductId.get(product.id) ?? { average: 0, total: 0 };
+    const isIndependentSeller = conjunto.slug === "emprendedores-independientes";
+    const verificationStatus = isIndependentSeller ? "unverified" : "verified";
+    const owner = userById.get(product.ownerId);
+    const ownerIsPlus = Boolean(
+      owner &&
+        owner.status === "active" &&
+        owner.subscriptionPlan === "plus" &&
+        owner.subscriptionStatus === "active",
+    );
     const specialPrice =
       typeof product.specialPrice === "number" ? product.specialPrice : null;
     const onSale = specialPrice !== null && specialPrice < product.price;
@@ -116,6 +126,11 @@ export async function GET(request: NextRequest) {
         contactPhone: emprendimiento.contactPhone,
         visibility: emprendimiento.visibility,
         status: emprendimiento.status,
+        verificationStatus,
+        verificationWarning:
+          verificationStatus === "unverified"
+            ? "Este emprendimiento no esta verificado por un conjunto. Compra bajo tu propio criterio."
+            : null,
       },
       conjunto: {
         id: conjunto.id,
@@ -131,6 +146,7 @@ export async function GET(request: NextRequest) {
           ? null
           : haversineDistanceKm(latitude, longitude, conjunto.latitude, conjunto.longitude),
       rating,
+      ownerIsPlus,
     }];
   });
 
@@ -161,6 +177,10 @@ export async function GET(request: NextRequest) {
   });
 
   const sorted = filtered.sort((a, b) => {
+    if (a.ownerIsPlus !== b.ownerIsPlus) {
+      return a.ownerIsPlus ? -1 : 1;
+    }
+
     if (sort === "price_asc") {
       return a.finalPrice - b.finalPrice;
     }

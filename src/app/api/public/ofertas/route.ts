@@ -5,6 +5,7 @@ export const runtime = "nodejs";
 
 export async function GET() {
   const db = await readDb();
+  const userById = new Map(db.users.map((entry) => [entry.id, entry] as const));
 
   const ofertas = db.products
     .flatMap((product) => {
@@ -30,6 +31,13 @@ export async function GET() {
       const discountPercent = Math.round(
         ((product.price - specialPrice) / product.price) * 100,
       );
+      const owner = userById.get(product.ownerId);
+      const ownerIsPlus = Boolean(
+        owner &&
+          owner.status === "active" &&
+          owner.subscriptionPlan === "plus" &&
+          owner.subscriptionStatus === "active",
+      );
 
       return [{
         id: product.id,
@@ -44,9 +52,18 @@ export async function GET() {
         rating: computeRating(product.id, db),
         viewCount: product.viewCount,
         conjuntoName: conjunto.name,
+        ownerIsPlus,
+        verificationStatus:
+          conjunto.slug === "emprendedores-independientes" ? "unverified" : "verified",
       }];
     })
-    .sort((a, b) => b.discountPercent - a.discountPercent)
+    .sort((a, b) => {
+      if (a.ownerIsPlus !== b.ownerIsPlus) {
+        return a.ownerIsPlus ? -1 : 1;
+      }
+
+      return b.discountPercent - a.discountPercent;
+    })
     .slice(0, 8);
 
   return NextResponse.json({ ofertas });

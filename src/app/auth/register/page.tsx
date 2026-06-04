@@ -234,7 +234,7 @@ export default function RegisterPage() {
 
     if (step === 3) {
       if (role === "resident") {
-        return Boolean(conjuntoSlug);
+        return true;
       }
 
       return Boolean(
@@ -305,6 +305,7 @@ export default function RegisterPage() {
           requestedConjuntoMapUrl,
           requestedConjuntoDescription,
           requestedConjuntoLogoUrl,
+          isIndependent: role === "resident" && !conjuntoSlug,
         }),
       });
 
@@ -538,8 +539,18 @@ export default function RegisterPage() {
                     ))}
                   </datalist>
                   <p className="text-xs text-zinc-400">
-                    Búscalo y selecciónalo desde este mismo campo.
+                    Buscalo y seleccionalo desde este mismo campo. Si no perteneces a un conjunto, puedes continuar sin seleccionar.
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConjuntoSlug("");
+                      setConjuntoInputValue("");
+                    }}
+                    className="inline-block text-xs uppercase tracking-[0.12em] text-amber-300 underline"
+                  >
+                    Continuar sin conjunto (perfil no verificado)
+                  </button>
                   {selectedConjunto?.mapUrl ? (
                     <a
                       href={selectedConjunto.mapUrl}
@@ -549,6 +560,11 @@ export default function RegisterPage() {
                     >
                       Ver conjunto seleccionado en mapa
                     </a>
+                  ) : null}
+                  {!conjuntoSlug ? (
+                    <p className="text-xs text-amber-300">
+                      Publicaras como emprendedor no verificado hasta que un conjunto valide tu perfil.
+                    </p>
                   ) : null}
                 </div>
               ) : (

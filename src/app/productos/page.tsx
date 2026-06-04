@@ -21,7 +21,11 @@ interface CatalogProduct {
   distanceKm: number | null;
   rating: { average: number; total: number };
   conjunto: { name: string; mapUrl?: string | null };
-  emprendimiento: { name: string };
+  emprendimiento: {
+    name: string;
+    verificationStatus: "verified" | "unverified";
+    verificationWarning: string | null;
+  };
 }
 
 interface Viewer {
@@ -469,6 +473,17 @@ function ProductsContent() {
                     className="object-cover transition duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+                  <div
+                    className={`absolute right-3 top-3 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${
+                      product.emprendimiento.verificationStatus === "verified"
+                        ? "bg-emerald-300 text-black"
+                        : "bg-amber-300 text-black"
+                    }`}
+                  >
+                    {product.emprendimiento.verificationStatus === "verified"
+                      ? "Verificado"
+                      : "No verificado"}
+                  </div>
                   <div className="absolute inset-x-0 bottom-0 space-y-2 p-4">
                     <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-300">
                       {product.conjunto.name} - {product.category}
@@ -493,6 +508,11 @@ function ProductsContent() {
                     </div>
                     {product.distanceKm !== null ? (
                       <p className="text-xs text-zinc-300">{product.distanceKm.toFixed(1)} km de ti</p>
+                    ) : null}
+                    {product.emprendimiento.verificationStatus === "unverified" ? (
+                      <p className="text-xs text-amber-300">
+                        Sin validacion de conjunto. Compra bajo tu propio criterio.
+                      </p>
                     ) : null}
                   </div>
                 </Link>

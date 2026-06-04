@@ -1,7 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, readDb } from "@/lib/urbis-store";
+import { PLUS_BANK_TRANSFER_METHOD, PLUS_PRICE_USD } from "@/config/subscription";
 
 export const runtime = "nodejs";
+
+const PAYMENT_PROOF_PREFIX = `${PLUS_BANK_TRANSFER_METHOD}|proof:`;
+
+function parsePlusPaymentProof(rawValue: string | null): string | null {
+  if (!rawValue) {
+    return null;
+  }
+
+  if (rawValue.startsWith(PAYMENT_PROOF_PREFIX)) {
+    return rawValue.slice(PAYMENT_PROOF_PREFIX.length) || null;
+  }
+
+  return null;
+}
 
 function createProductsCountByEmprendimiento<T extends { emprendimientoId: string }>(
   products: T[],
@@ -209,6 +224,24 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    const pendingPlusRequests = db.users
+      .filter(
+        (entry) =>
+          entry.status === "active" &&
+          entry.subscriptionPlan === "plus" &&
+          entry.subscriptionStatus === "pending",
+      )
+      .map((entry) => ({
+        userId: entry.id,
+        name: entry.name,
+        email: entry.email,
+        phone: entry.phone,
+        proofUrl: parsePlusPaymentProof(entry.subscriptionPaymentMethod),
+        amountUsd: PLUS_PRICE_USD,
+        requestedAt: entry.subscriptionUpdatedAt ?? entry.createdAt,
+      }))
+      .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -217,6 +250,7 @@ export async function GET(request: NextRequest) {
       },
       conjuntos,
       pendingConjuntoRequests,
+      pendingPlusRequests,
     });
   }
 

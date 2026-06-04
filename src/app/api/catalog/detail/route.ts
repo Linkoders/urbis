@@ -136,6 +136,12 @@ export async function GET(request: NextRequest) {
         contactEmail: emprendimiento.contactEmail,
         contactPhone: emprendimiento.contactPhone,
         visibility: emprendimiento.visibility,
+        verificationStatus:
+          conjunto.slug === "emprendedores-independientes" ? "unverified" : "verified",
+        verificationWarning:
+          conjunto.slug === "emprendedores-independientes"
+            ? "Este emprendimiento no esta verificado por un conjunto. No podemos garantizar su confiabilidad."
+            : null,
       },
       conjunto: {
         id: conjunto.id,

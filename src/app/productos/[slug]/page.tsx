@@ -26,6 +26,8 @@ interface ProductDetail {
     visibility: "public" | "internal";
     contactEmail: string | null;
     contactPhone: string | null;
+    verificationStatus: "verified" | "unverified";
+    verificationWarning: string | null;
   };
   conjunto: { id: string; name: string; slug: string };
   rating: { average: number; total: number };
@@ -335,6 +337,27 @@ export default function ProductDetailPage() {
                   </p>
                 </div>
               </div>
+              <div className="flex items-center justify-between border border-white/10 bg-black/25 px-3 py-2">
+                <span className="text-xs uppercase tracking-[0.12em] text-zinc-300">
+                  Estado de verificacion
+                </span>
+                <span
+                  className={`px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${
+                    product.emprendimiento.verificationStatus === "verified"
+                      ? "bg-emerald-300 text-black"
+                      : "bg-amber-300 text-black"
+                  }`}
+                >
+                  {product.emprendimiento.verificationStatus === "verified"
+                    ? "Verificado"
+                    : "No verificado"}
+                </span>
+              </div>
+              {product.emprendimiento.verificationWarning ? (
+                <p className="text-xs text-amber-300">
+                  {product.emprendimiento.verificationWarning}
+                </p>
+              ) : null}
               <p className="text-sm text-zinc-300">
                 Contacto: {product.emprendimiento.contactEmail || "No definido"}
               </p>

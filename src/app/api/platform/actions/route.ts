@@ -12,6 +12,7 @@ import { sendEmailNotification } from "@/lib/email-service";
 import { prisma } from "@/lib/prisma";
 import { parseGoogleMapsLocation } from "@/lib/google-maps";
 import type { Emprendimiento, ProductStatus, Visibility } from "@/lib/urbis-types";
+import { PLUS_BANK_TRANSFER_METHOD } from "@/config/subscription";
 
 export const runtime = "nodejs";
 const MAX_PRODUCT_IMAGES = 5;
@@ -421,6 +422,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const isIndependentPublisher = !user.conjuntoId;
     const assignedConjuntoId = user.conjuntoId || ensureIndependentConjunto(db, user.id);
 
     const timestamp = new Date().toISOString();
@@ -434,36 +436,40 @@ export async function POST(request: NextRequest) {
       contactEmail,
       contactPhone,
       visibility,
-      status: "pending",
+      status: isIndependentPublisher ? "approved" : "pending",
       createdAt: timestamp,
       updatedAt: timestamp,
     };
     db.emprendimientos.push(createdEmprendimiento);
 
-    const conjuntoAdmins = db.users.filter(
-      (entry) =>
-        entry.role === "admin_conjunto" &&
-        entry.conjuntoId === assignedConjuntoId &&
-        entry.status === "active",
-    );
-    for (const admin of conjuntoAdmins) {
-      pushInAppNotification(
-        db,
-        admin.id,
-        "new_emprendimiento_pending",
-        `Nuevo emprendimiento pendiente: ${name}`,
-        {
-          emprendimientoId: createdEmprendimiento.id,
-          conjuntoId: assignedConjuntoId,
-        },
+    if (!isIndependentPublisher) {
+      const conjuntoAdmins = db.users.filter(
+        (entry) =>
+          entry.role === "admin_conjunto" &&
+          entry.conjuntoId === assignedConjuntoId &&
+          entry.status === "active",
       );
+      for (const admin of conjuntoAdmins) {
+        pushInAppNotification(
+          db,
+          admin.id,
+          "new_emprendimiento_pending",
+          `Nuevo emprendimiento pendiente: ${name}`,
+          {
+            emprendimientoId: createdEmprendimiento.id,
+            conjuntoId: assignedConjuntoId,
+          },
+        );
+      }
     }
 
     pushInAppNotification(
       db,
       user.id,
       "emprendimiento_created",
-      "Tu emprendimiento fue creado y está pendiente de revisión.",
+      isIndependentPublisher
+        ? "Tu emprendimiento fue creado como no verificado. Puedes publicar productos, pero se mostrará con advertencia de confianza."
+        : "Tu emprendimiento fue creado y está pendiente de revisión.",
       {
         emprendimientoId: createdEmprendimiento.id,
         conjuntoId: assignedConjuntoId,
@@ -471,7 +477,12 @@ export async function POST(request: NextRequest) {
     );
 
     await writeDb(db);
-    return NextResponse.json({ ok: true, message: "Emprendimiento enviado a revisión." });
+    return NextResponse.json({
+      ok: true,
+      message: isIndependentPublisher
+        ? "Emprendimiento creado como no verificado."
+        : "Emprendimiento enviado a revisión.",
+    });
   }
 
   if (action === "update_emprendimiento") {
@@ -927,6 +938,56 @@ export async function POST(request: NextRequest) {
 
     await writeDb(db);
     return NextResponse.json({ ok: true, message: "Solicitud procesada." });
+  }
+
+  if (action === "set_plus_status") {
+    if (!requireRole(user, ["superadmin"])) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 403 });
+    }
+
+    const userId = String(data.userId ?? "").trim();
+    const status = String(data.status ?? "").trim();
+    if (!userId || !["active", "rejected"].includes(status)) {
+      return NextResponse.json({ error: "Datos inválidos." }, { status: 400 });
+    }
+
+    const targetUser = db.users.find((entry) => entry.id === userId);
+    if (!targetUser || targetUser.status !== "active") {
+      return NextResponse.json({ error: "Usuario no encontrado." }, { status: 404 });
+    }
+
+    if (status === "active") {
+      targetUser.subscriptionPlan = "plus";
+      targetUser.subscriptionStatus = "active";
+      targetUser.subscriptionUpdatedAt = new Date().toISOString();
+      targetUser.subscriptionPaymentMethod =
+        targetUser.subscriptionPaymentMethod || PLUS_BANK_TRANSFER_METHOD;
+
+      pushInAppNotification(
+        db,
+        targetUser.id,
+        "subscription_plus_approved",
+        "Tu suscripción Plus fue aprobada. Tus productos tendrán prioridad en el catálogo.",
+      );
+
+      await writeDb(db);
+      return NextResponse.json({ ok: true, message: "Suscripción Plus aprobada." });
+    }
+
+    targetUser.subscriptionPlan = "basic";
+    targetUser.subscriptionStatus = "inactive";
+    targetUser.subscriptionPaymentMethod = null;
+    targetUser.subscriptionUpdatedAt = new Date().toISOString();
+
+    pushInAppNotification(
+      db,
+      targetUser.id,
+      "subscription_plus_rejected",
+      "Tu solicitud Plus fue rechazada. Revisa el comprobante y vuelve a intentarlo.",
+    );
+
+    await writeDb(db);
+    return NextResponse.json({ ok: true, message: "Solicitud Plus rechazada." });
   }
 
   if (action === "delete_conjunto") {

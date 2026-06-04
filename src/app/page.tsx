@@ -56,6 +56,7 @@ interface OfferProduct {
   rating: { average: number; total: number };
   viewCount: number;
   conjuntoName: string;
+  verificationStatus: "verified" | "unverified";
 }
 
 const initialStats: LandingStats = {
@@ -571,7 +572,7 @@ export default function Home() {
         <div className="relative flex items-center justify-center" data-hero>
           <div className="relative w-full overflow-hidden border border-white/20 bg-white/5 p-4 lg:p-6 hover-lift">
             <Image
-              src="/images/hero-market.jpg"
+              src="/images/home-hero-main.jpg"
               alt="Mercado local en comunidad"
               width={1400}
               height={1000}
@@ -582,7 +583,7 @@ export default function Home() {
           </div>
           <div className="absolute -left-5 -top-6 hidden w-44 overflow-hidden border border-white/20 bg-black/70 p-2 md:block lg:w-56">
             <Image
-              src="/images/owner-1.jpg"
+              src="/images/home-hero-top.jpg"
               alt="Emprendedor local"
               width={500}
               height={700}
@@ -592,7 +593,7 @@ export default function Home() {
           </div>
           <div className="absolute -bottom-8 -right-5 w-44 overflow-hidden border border-white/20 bg-black/70 p-2 md:w-56 lg:w-64">
             <Image
-              src="/images/owner-2.jpg"
+              src="/images/home-hero-bottom.jpg"
               alt="Comercio barrial"
               width={500}
               height={700}
@@ -817,6 +818,15 @@ export default function Home() {
                   <div className="absolute left-3 top-3 bg-[#f59e0b] px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-black">
                     -{offer.discountPercent}%
                   </div>
+                  <div
+                    className={`absolute right-3 top-3 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${
+                      offer.verificationStatus === "verified"
+                        ? "bg-emerald-300 text-black"
+                        : "bg-amber-300 text-black"
+                    }`}
+                  >
+                    {offer.verificationStatus === "verified" ? "Verificado" : "No verificado"}
+                  </div>
                 </div>
                 <div className="space-y-2 p-4">
                   <p className="text-xs uppercase tracking-[0.14em] text-zinc-600">{offer.category}</p>
@@ -829,6 +839,11 @@ export default function Home() {
                   <p className="text-xs text-zinc-500">
                     {offer.conjuntoName} - {offer.viewCount} vistas - {offer.rating.average}/5
                   </p>
+                  {offer.verificationStatus === "unverified" ? (
+                    <p className="text-xs text-amber-700">
+                      No podemos dar fe de su confiabilidad al no estar verificado.
+                    </p>
+                  ) : null}
                 </div>
               </Link>
             ))
@@ -848,7 +863,7 @@ export default function Home() {
             ¿Quieres registrarte?
           </h3>
           <p className="mx-auto mt-7 max-w-3xl text-xl leading-relaxed text-zinc-700" data-reveal>
-              Crea tu cuenta como residente o como encargado de un conjunto.
+              Crea tu cuenta como residente, independiente o como encargado de un conjunto.
             Desde ahí podrás cargar los datos de tu comunidad, subir tu logo y
             publicar tus productos con fotos reales desde tus archivos.
           </p>
