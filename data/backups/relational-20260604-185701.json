@@ -1,0 +1,709 @@
+{
+  "users": [
+    {
+      "id": "b040226f-f9ce-41ef-887f-25e74991c720",
+      "name": "Super Admin URBIS",
+      "email": "super@urbis.local",
+      "phone": null,
+      "passwordHash": "1a158ca261dc23bacd522f68908ffa81:70ae67b9d37618533ae1b165ea7a04c60f758739a3ae3837208d9e210a808a2c1cc27293d119a6241599bfdd76b06c88622544337543cf743f771c1b402906c6",
+      "role": "superadmin",
+      "conjuntoId": null,
+      "avatarUrl": null,
+      "status": "active",
+      "subscriptionPlan": "plus",
+      "subscriptionStatus": "active",
+      "subscriptionPaymentMethod": "system_seed",
+      "subscriptionUpdatedAt": "2026-05-03T21:03:21.353Z",
+      "emailVerifiedAt": "2026-05-03T21:03:21.353Z",
+      "emailVerificationCode": null,
+      "acceptedTermsAt": "2026-05-03T21:03:21.353Z",
+      "createdAt": "2026-05-03T19:31:21.570Z"
+    },
+    {
+      "id": "233d290f-9a66-46d3-95e4-f61e02a05815",
+      "name": "Admin Quito Norte",
+      "email": "admin.norte@urbis.local",
+      "phone": "+593990001111",
+      "passwordHash": "87b65d24128c03af1108722c96b9a6ad:d9d93338fc1be053533066865c640b696b7c6c432f75f2d0ac18bcb9d7d0300e82284f6baf6ac746e5ee0107ea7c283c495634351554e190e0bfda498a5ea40f",
+      "role": "admin_conjunto",
+      "conjuntoId": "38557844-0cae-41f5-99b6-455bca438ccb",
+      "avatarUrl": "/images/owner-1.jpg",
+      "status": "active",
+      "subscriptionPlan": "basic",
+      "subscriptionStatus": "inactive",
+      "subscriptionPaymentMethod": null,
+      "subscriptionUpdatedAt": "2026-05-03T21:22:18.112Z",
+      "emailVerifiedAt": "2026-05-03T21:22:18.112Z",
+      "emailVerificationCode": null,
+      "acceptedTermsAt": "2026-05-03T21:22:18.112Z",
+      "createdAt": "2026-05-03T21:22:18.112Z"
+    },
+    {
+      "id": "09ebc252-3f42-4dc3-b69f-f18ad9a9e23d",
+      "name": "Admin Quito Sur",
+      "email": "admin.sur@urbis.local",
+      "phone": "+593990002222",
+      "passwordHash": "5949ff5e2a015df78f57790953c96ff2:95a243a28600ca148726204f5915e0d5590ac1d6e8ae07a4fc2e805a2c39b6e223384ab6fb2c29d715e7e02dac389d695044949e39c61753c1f992e683982264",
+      "role": "admin_conjunto",
+      "conjuntoId": "d1a1f62d-8c02-4464-9a7d-99d59eafad48",
+      "avatarUrl": "/images/owner-1.jpg",
+      "status": "active",
+      "subscriptionPlan": "basic",
+      "subscriptionStatus": "inactive",
+      "subscriptionPaymentMethod": null,
+      "subscriptionUpdatedAt": "2026-05-03T21:22:19.448Z",
+      "emailVerifiedAt": "2026-05-03T21:22:19.448Z",
+      "emailVerificationCode": null,
+      "acceptedTermsAt": "2026-05-03T21:22:19.448Z",
+      "createdAt": "2026-05-03T21:22:19.448Z"
+    },
+    {
+      "id": "ee1a605e-dd32-4699-87e1-c6f09bde62fa",
+      "name": "Diego Padilla",
+      "email": "diegivan17@hotmail.com",
+      "phone": "0969087163",
+      "passwordHash": "d76ef6d94da5be1ca407642486512511:b5684cf4276939af284dad5bc5363119d2bf38878d8c64e71ffcacfa950e03e8dd60412ad6195f8e241189d9f64ad5c28906f552b91bdf5096c8e4d1c02c48e1",
+      "role": "admin_conjunto",
+      "conjuntoId": null,
+      "avatarUrl": "/api/blob?url=https%3A%2F%2Fp7iu1eohrp3hzmjc.private.blob.vercel-storage.com%2Furbis%2F1777844231923-1-09445add-2df4-4c87-b196-59ddbee22162.jpg",
+      "status": "active",
+      "subscriptionPlan": "basic",
+      "subscriptionStatus": "inactive",
+      "subscriptionPaymentMethod": null,
+      "subscriptionUpdatedAt": "2026-05-03T21:37:15.622Z",
+      "emailVerifiedAt": null,
+      "emailVerificationCode": "561518",
+      "acceptedTermsAt": "2026-05-03T21:37:15.622Z",
+      "createdAt": "2026-05-03T21:37:15.622Z"
+    },
+    {
+      "id": "3f0d38c7-43f2-484d-bba9-b08af755b8d7",
+      "name": "Christian Novoa",
+      "email": "cnovoa10d@gmail.com",
+      "phone": "0995210841",
+      "passwordHash": "c746c4a4b80c88404a3f67e22c99f406:e342d7c6887563c42caac3cfa71e981750149959a449e0fddd95eee1a9cda9b52aff15cf8b7946e1c6692ed05bc239cc21744ab602eedaff2d227a0b7ff0939d",
+      "role": "resident",
+      "conjuntoId": "d1a1f62d-8c02-4464-9a7d-99d59eafad48",
+      "avatarUrl": "/api/blob?url=https%3A%2F%2Fp7iu1eohrp3hzmjc.private.blob.vercel-storage.com%2Furbis%2F1777955192243-1-a930ad33-9495-4b46-b83d-85f2e246d1b0.png",
+      "status": "active",
+      "subscriptionPlan": "plus",
+      "subscriptionStatus": "pending",
+      "subscriptionPaymentMethod": "kushki",
+      "subscriptionUpdatedAt": "2026-05-05T04:37:17.549Z",
+      "emailVerifiedAt": "2026-05-05T04:27:28.532Z",
+      "emailVerificationCode": null,
+      "acceptedTermsAt": "2026-05-05T04:26:35.015Z",
+      "createdAt": "2026-05-05T04:26:35.015Z"
+    }
+  ],
+  "conjuntos": [
+    {
+      "id": "38557844-0cae-41f5-99b6-455bca438ccb",
+      "name": "Conjunto Prueba Quito Norte",
+      "slug": "conjunto-prueba-quito-norte",
+      "location": "Quito, Pichincha",
+      "mapUrl": "https://maps.google.com/?q=-0.180653,-78.467834",
+      "latitude": -0.180653,
+      "longitude": -78.467834,
+      "description": "Conjunto de prueba en zona norte de Quito para validaciones funcionales.",
+      "logoUrl": "/images/owner-1.jpg",
+      "status": "approved",
+      "createdBy": "b040226f-f9ce-41ef-887f-25e74991c720",
+      "createdAt": "2026-05-03T21:20:18.260Z"
+    },
+    {
+      "id": "d1a1f62d-8c02-4464-9a7d-99d59eafad48",
+      "name": "Conjunto Prueba Quito Sur",
+      "slug": "conjunto-prueba-quito-sur",
+      "location": "Quito, Pichincha",
+      "mapUrl": "https://maps.google.com/?q=-0.255761,-78.542318",
+      "latitude": -0.255761,
+      "longitude": -78.542318,
+      "description": "Conjunto de prueba en zona sur de Quito para escenarios de registro y cat?logo.",
+      "logoUrl": "/images/owner-1.jpg",
+      "status": "approved",
+      "createdBy": "b040226f-f9ce-41ef-887f-25e74991c720",
+      "createdAt": "2026-05-03T21:20:18.260Z"
+    }
+  ],
+  "conjuntoRequests": [
+    {
+      "id": "34cb7a50-4750-4075-898e-aa84cbfd77a0",
+      "nameRequested": "conjunto 6 de junio",
+      "location": "la marqueza",
+      "mapUrl": "https://www.google.com/maps/place/Parque+6+De+Junio,+Conocoto,+Ecuador/@-0.3129002,-78.4812738,17z/data=!3m1!4b1!4m6!3m5!1s0x91d5a36ab30ff773:0xa5f4fced7ed36eef!8m2!3d-0.3129056!4d-78.4786989!16s%2Fg%2F11hz6tz54p?entry=ttu&g_ep=EgoyMDI2MDQyOS4wIKXMDSoASAFQAw%3D%3D",
+      "latitude": -0.3129002,
+      "longitude": -78.4812738,
+      "description": "aaaa",
+      "logoUrl": "/api/blob?url=https%3A%2F%2Fp7iu1eohrp3hzmjc.private.blob.vercel-storage.com%2Furbis%2F1777844232738-1-e9a83c56-9914-4165-9fbf-77e400b8cb9e.png",
+      "contactEmail": "diegivan17@hotmail.com",
+      "requestedByUserId": "ee1a605e-dd32-4699-87e1-c6f09bde62fa",
+      "status": "pending",
+      "reviewedBy": null,
+      "createdAt": "2026-05-03T21:37:15.622Z",
+      "updatedAt": "2026-05-03T21:37:15.622Z"
+    }
+  ],
+  "emprendimientos": [
+    {
+      "id": "b7419f24-e2fb-48d1-bd3c-4b7a38d7b9f8",
+      "conjuntoId": "38557844-0cae-41f5-99b6-455bca438ccb",
+      "ownerId": "233d290f-9a66-46d3-95e4-f61e02a05815",
+      "name": "Panaderia Norte Andino",
+      "description": "Pan artesanal y cafeter?a para residentes del sector norte.",
+      "logoUrl": "/images/market-woman.jpg",
+      "contactEmail": "admin.norte@urbis.local",
+      "contactPhone": "+593990001111",
+      "visibility": "public",
+      "status": "approved",
+      "createdAt": "2026-05-03T21:22:18.112Z",
+      "updatedAt": "2026-05-03T21:22:18.112Z"
+    },
+    {
+      "id": "9711506f-9465-4cfa-9110-b10bc9614ee1",
+      "conjuntoId": "38557844-0cae-41f5-99b6-455bca438ccb",
+      "ownerId": "233d290f-9a66-46d3-95e4-f61e02a05815",
+      "name": "Tecno Norte Express",
+      "description": "Accesorios y soporte r?pido para celulares y laptops.",
+      "logoUrl": "/images/owner-1.jpg",
+      "contactEmail": "admin.norte@urbis.local",
+      "contactPhone": "+593990001111",
+      "visibility": "public",
+      "status": "approved",
+      "createdAt": "2026-05-03T21:22:18.112Z",
+      "updatedAt": "2026-05-03T21:22:18.112Z"
+    },
+    {
+      "id": "1cb4a327-243d-46fc-a068-579f61d3b1e7",
+      "conjuntoId": "d1a1f62d-8c02-4464-9a7d-99d59eafad48",
+      "ownerId": "09ebc252-3f42-4dc3-b69f-f18ad9a9e23d",
+      "name": "Sabores del Sur Quito",
+      "description": "Comidas t?picas y men?s diarios para la comunidad del sur.",
+      "logoUrl": "/images/hero-market.jpg",
+      "contactEmail": "admin.sur@urbis.local",
+      "contactPhone": "+593990002222",
+      "visibility": "public",
+      "status": "approved",
+      "createdAt": "2026-05-03T21:22:19.448Z",
+      "updatedAt": "2026-05-03T21:22:19.448Z"
+    },
+    {
+      "id": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "conjuntoId": "d1a1f62d-8c02-4464-9a7d-99d59eafad48",
+      "ownerId": "09ebc252-3f42-4dc3-b69f-f18ad9a9e23d",
+      "name": "Hogar Sur Deco",
+      "description": "Decoraci?n, textiles y detalles para el hogar.",
+      "logoUrl": "/images/owner-1.jpg",
+      "contactEmail": "admin.sur@urbis.local",
+      "contactPhone": "+593990002222",
+      "visibility": "public",
+      "status": "approved",
+      "createdAt": "2026-05-03T21:22:19.448Z",
+      "updatedAt": "2026-05-03T21:22:19.448Z"
+    },
+    {
+      "id": "ed2be4aa-0b23-4f24-8f43-5b45ff33eb13",
+      "conjuntoId": "d1a1f62d-8c02-4464-9a7d-99d59eafad48",
+      "ownerId": "3f0d38c7-43f2-484d-bba9-b08af755b8d7",
+      "name": "Empanadas",
+      "description": "Empanadas frescas",
+      "logoUrl": "/images/market-woman.jpg",
+      "contactEmail": "cnovoa10d@gmail.com",
+      "contactPhone": "0995210841",
+      "visibility": "public",
+      "status": "pending",
+      "createdAt": "2026-05-05T04:47:18.728Z",
+      "updatedAt": "2026-05-05T04:47:46.125Z"
+    }
+  ],
+  "products": [
+    {
+      "id": "2bab6b83-1496-4f5d-b0a1-354ff823a519",
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "ownerId": "09ebc252-3f42-4dc3-b69f-f18ad9a9e23d",
+      "name": "Set de Cojines Decorativos",
+      "slug": "set-de-cojines-decorativos-f2f339",
+      "description": "Set x2 cojines para sala con dise?o moderno.",
+      "price": 18.9,
+      "specialPrice": 17.01,
+      "category": "Hogar",
+      "stock": 20,
+      "imageUrls": [
+        "/images/owner-1.jpg"
+      ],
+      "status": "published",
+      "viewCount": 6,
+      "createdAt": "2026-05-03T21:27:37.600Z",
+      "updatedAt": "2026-05-05T04:32:44.969Z"
+    },
+    {
+      "id": "6944628d-11c6-41b0-8f78-a10a443f70da",
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "ownerId": "09ebc252-3f42-4dc3-b69f-f18ad9a9e23d",
+      "name": "Manta Tejida Multiuso",
+      "slug": "manta-tejida-multiuso-f2f339",
+      "description": "Manta suave para sof? o cama en tonos neutros.",
+      "price": 22,
+      "specialPrice": 19.8,
+      "category": "Hogar",
+      "stock": 20,
+      "imageUrls": [
+        "/images/hero-market.jpg"
+      ],
+      "status": "published",
+      "viewCount": 0,
+      "createdAt": "2026-05-03T21:27:37.978Z",
+      "updatedAt": "2026-05-03T21:27:37.978Z"
+    },
+    {
+      "id": "fc67ac00-10be-4bb6-a07b-b7ae7c55b134",
+      "emprendimientoId": "b7419f24-e2fb-48d1-bd3c-4b7a38d7b9f8",
+      "ownerId": "233d290f-9a66-46d3-95e4-f61e02a05815",
+      "name": "Pan Integral Artesanal",
+      "slug": "pan-integral-artesanal-b7419f",
+      "description": "Pan integral horneado cada ma?ana con masa madre.",
+      "price": 3.5,
+      "specialPrice": 3.15,
+      "category": "Alimentos",
+      "stock": 20,
+      "imageUrls": [
+        "/images/hero-market.jpg"
+      ],
+      "status": "published",
+      "viewCount": 0,
+      "createdAt": "2026-05-03T21:27:38.221Z",
+      "updatedAt": "2026-05-03T21:27:38.221Z"
+    },
+    {
+      "id": "a92253e0-27c6-4c9f-913b-2186a9479441",
+      "emprendimientoId": "b7419f24-e2fb-48d1-bd3c-4b7a38d7b9f8",
+      "ownerId": "233d290f-9a66-46d3-95e4-f61e02a05815",
+      "name": "Croissant de Mantequilla",
+      "slug": "croissant-de-mantequilla-b7419f",
+      "description": "Croissant laminado, ideal para desayuno y caf?.",
+      "price": 2.2,
+      "specialPrice": 1.98,
+      "category": "Alimentos",
+      "stock": 20,
+      "imageUrls": [
+        "/images/market-woman.jpg"
+      ],
+      "status": "published",
+      "viewCount": 0,
+      "createdAt": "2026-05-03T21:27:38.405Z",
+      "updatedAt": "2026-05-03T21:27:38.405Z"
+    },
+    {
+      "id": "0aaf782b-bb6f-4353-bd9b-d68041fc69d0",
+      "emprendimientoId": "1cb4a327-243d-46fc-a068-579f61d3b1e7",
+      "ownerId": "09ebc252-3f42-4dc3-b69f-f18ad9a9e23d",
+      "name": "Almuerzo Ejecutivo del D?a",
+      "slug": "almuerzo-ejecutivo-del-da-1cb4a3",
+      "description": "Sopa, plato fuerte y bebida con sabor casero.",
+      "price": 4.75,
+      "specialPrice": 4.28,
+      "category": "Alimentos",
+      "stock": 20,
+      "imageUrls": [
+        "/images/hero-market.jpg"
+      ],
+      "status": "published",
+      "viewCount": 0,
+      "createdAt": "2026-05-03T21:27:38.589Z",
+      "updatedAt": "2026-05-03T21:27:38.589Z"
+    },
+    {
+      "id": "736e9d52-d896-410a-b444-7e1f79ce35b3",
+      "emprendimientoId": "1cb4a327-243d-46fc-a068-579f61d3b1e7",
+      "ownerId": "09ebc252-3f42-4dc3-b69f-f18ad9a9e23d",
+      "name": "Empanadas de Queso x3",
+      "slug": "empanadas-de-queso-x3-1cb4a3",
+      "description": "Empanadas reci?n hechas, crocantes y rellenas de queso.",
+      "price": 3.25,
+      "specialPrice": 2.93,
+      "category": "Alimentos",
+      "stock": 20,
+      "imageUrls": [
+        "/images/market-woman.jpg"
+      ],
+      "status": "published",
+      "viewCount": 0,
+      "createdAt": "2026-05-03T21:27:38.773Z",
+      "updatedAt": "2026-05-03T21:27:38.773Z"
+    },
+    {
+      "id": "1b371a2f-ff27-4bec-b24e-e6e6d1c46631",
+      "emprendimientoId": "9711506f-9465-4cfa-9110-b10bc9614ee1",
+      "ownerId": "233d290f-9a66-46d3-95e4-f61e02a05815",
+      "name": "Cable USB-C Reforzado",
+      "slug": "cable-usb-c-reforzado-971150",
+      "description": "Cable de carga r?pida de 1.5m con recubrimiento trenzado.",
+      "price": 7.9,
+      "specialPrice": 7.11,
+      "category": "Tecnolog?a",
+      "stock": 20,
+      "imageUrls": [
+        "/images/owner-1.jpg"
+      ],
+      "status": "published",
+      "viewCount": 0,
+      "createdAt": "2026-05-03T21:27:38.957Z",
+      "updatedAt": "2026-05-03T21:27:38.957Z"
+    },
+    {
+      "id": "8e82f75f-bed9-41ed-8ac4-22119850451d",
+      "emprendimientoId": "9711506f-9465-4cfa-9110-b10bc9614ee1",
+      "ownerId": "233d290f-9a66-46d3-95e4-f61e02a05815",
+      "name": "Soporte Magn?tico para Auto",
+      "slug": "soporte-magntico-para-auto-971150",
+      "description": "Soporte universal para smartphone con base magn?tica.",
+      "price": 11.5,
+      "specialPrice": 10.35,
+      "category": "Tecnolog?a",
+      "stock": 20,
+      "imageUrls": [
+        "/images/hero-market.jpg"
+      ],
+      "status": "published",
+      "viewCount": 1,
+      "createdAt": "2026-05-03T21:27:39.138Z",
+      "updatedAt": "2026-05-05T04:44:53.950Z"
+    }
+  ],
+  "reviews": [],
+  "notifications": [
+    {
+      "id": "2caf3839-3e4a-4b6e-aabb-ebaaca0288a0",
+      "userId": "b040226f-f9ce-41ef-887f-25e74991c720",
+      "type": "new_conjunto_request",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Nueva solicitud de conjunto: conjunto 6 de junio",
+        "requesterEmail": "diegivan17@hotmail.com"
+      },
+      "createdAt": "2026-05-03T21:37:15.679Z"
+    },
+    {
+      "id": "9327330d-1a52-40e2-813a-3540ff066d43",
+      "userId": "ee1a605e-dd32-4699-87e1-c6f09bde62fa",
+      "type": "conjunto_request_created",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Tu solicitud de conjunto fue enviada y está pendiente de revisión."
+      },
+      "createdAt": "2026-05-03T21:37:15.679Z"
+    },
+    {
+      "id": "e9e78a22-082f-43a8-8001-2bd368a42b3d",
+      "userId": "09ebc252-3f42-4dc3-b69f-f18ad9a9e23d",
+      "type": "manual_interest",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Christian Novoa marcó interés en \"Set de Cojines Decorativos\".",
+        "productId": "2bab6b83-1496-4f5d-b0a1-354ff823a519",
+        "productSlug": "set-de-cojines-decorativos-f2f339"
+      },
+      "createdAt": "2026-05-05T04:34:08.683Z"
+    },
+    {
+      "id": "5bf39c10-ec64-49ec-aec3-93792b2b71fb",
+      "userId": "09ebc252-3f42-4dc3-b69f-f18ad9a9e23d",
+      "type": "new_favorite",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Christian Novoa agregó tu producto \"Set de Cojines Decorativos\" a favoritos.",
+        "productId": "2bab6b83-1496-4f5d-b0a1-354ff823a519",
+        "productSlug": "set-de-cojines-decorativos-f2f339"
+      },
+      "createdAt": "2026-05-05T04:34:21.709Z"
+    },
+    {
+      "id": "48a9caea-09c7-41e5-ba40-c96668d0a122",
+      "userId": "b040226f-f9ce-41ef-887f-25e74991c720",
+      "type": "subscription_upgrade_request",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Christian Novoa solicitó cambio a plan Plus.",
+        "requesterId": "3f0d38c7-43f2-484d-bba9-b08af755b8d7",
+        "paymentMethod": "kushki"
+      },
+      "createdAt": "2026-05-05T04:37:17.933Z"
+    },
+    {
+      "id": "b81f7f4e-18bf-407e-826e-a2e851878ddd",
+      "userId": "3f0d38c7-43f2-484d-bba9-b08af755b8d7",
+      "type": "emprendimiento_created",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Tu emprendimiento fue creado y está pendiente de revisión.",
+        "conjuntoId": "d1a1f62d-8c02-4464-9a7d-99d59eafad48",
+        "emprendimientoId": "ed2be4aa-0b23-4f24-8f43-5b45ff33eb13"
+      },
+      "createdAt": "2026-05-05T04:47:18.729Z"
+    },
+    {
+      "id": "60a94cc0-08ee-4e9e-b2cb-0b008a25c6f1",
+      "userId": "09ebc252-3f42-4dc3-b69f-f18ad9a9e23d",
+      "type": "new_emprendimiento_pending",
+      "channel": "in_app",
+      "status": "queued",
+      "metadata": {
+        "message": "Nuevo emprendimiento pendiente: Empanadas",
+        "conjuntoId": "d1a1f62d-8c02-4464-9a7d-99d59eafad48",
+        "emprendimientoId": "ed2be4aa-0b23-4f24-8f43-5b45ff33eb13"
+      },
+      "createdAt": "2026-05-05T04:47:18.729Z"
+    }
+  ],
+  "feedbackMessages": [],
+  "entrepreneurProfiles": [
+    {
+      "userId": "ee1a605e-dd32-4699-87e1-c6f09bde62fa",
+      "displayName": null,
+      "bio": null,
+      "isIndependent": false,
+      "defaultConjuntoId": "38557844-0cae-41f5-99b6-455bca438ccb",
+      "approvalStatus": "active",
+      "createdAt": "2026-05-03T21:37:22.378Z",
+      "updatedAt": "2026-05-03T21:37:22.378Z"
+    }
+  ],
+  "notificationPreferences": [
+    {
+      "userId": "233d290f-9a66-46d3-95e4-f61e02a05815",
+      "wantsProductNotifications": false,
+      "wantsAnnouncementNotifications": true,
+      "wantsPersonalizedRecommendations": true,
+      "wantsEmail": false,
+      "wantsPush": false,
+      "productNotificationFrequency": "INSTANT",
+      "askedAt": null,
+      "respondedAt": null,
+      "createdAt": "2026-05-03T21:22:18.478Z",
+      "updatedAt": "2026-05-03T21:22:18.478Z"
+    },
+    {
+      "userId": "09ebc252-3f42-4dc3-b69f-f18ad9a9e23d",
+      "wantsProductNotifications": false,
+      "wantsAnnouncementNotifications": true,
+      "wantsPersonalizedRecommendations": true,
+      "wantsEmail": false,
+      "wantsPush": false,
+      "productNotificationFrequency": "INSTANT",
+      "askedAt": null,
+      "respondedAt": null,
+      "createdAt": "2026-05-03T21:22:19.671Z",
+      "updatedAt": "2026-05-03T21:22:19.671Z"
+    },
+    {
+      "userId": "ee1a605e-dd32-4699-87e1-c6f09bde62fa",
+      "wantsProductNotifications": false,
+      "wantsAnnouncementNotifications": true,
+      "wantsPersonalizedRecommendations": true,
+      "wantsEmail": false,
+      "wantsPush": false,
+      "productNotificationFrequency": "INSTANT",
+      "askedAt": null,
+      "respondedAt": null,
+      "createdAt": "2026-05-03T21:37:21.479Z",
+      "updatedAt": "2026-05-03T21:37:21.479Z"
+    },
+    {
+      "userId": "3f0d38c7-43f2-484d-bba9-b08af755b8d7",
+      "wantsProductNotifications": false,
+      "wantsAnnouncementNotifications": true,
+      "wantsPersonalizedRecommendations": true,
+      "wantsEmail": false,
+      "wantsPush": false,
+      "productNotificationFrequency": "INSTANT",
+      "askedAt": null,
+      "respondedAt": null,
+      "createdAt": "2026-05-05T04:26:41.911Z",
+      "updatedAt": "2026-05-05T04:26:41.911Z"
+    }
+  ],
+  "announcements": [],
+  "announcementDeliveries": [],
+  "productInterests": [
+    {
+      "id": "cmos4ubl40005f69g0n1hdnd1",
+      "userId": "3f0d38c7-43f2-484d-bba9-b08af755b8d7",
+      "productId": "2bab6b83-1496-4f5d-b0a1-354ff823a519",
+      "category": "Hogar",
+      "tag": null,
+      "weight": 1,
+      "source": "product_view",
+      "lastInteractedAt": "2026-05-05T04:32:52.262Z",
+      "createdAt": "2026-05-05T04:32:52.264Z",
+      "updatedAt": "2026-05-05T04:32:52.264Z"
+    },
+    {
+      "id": "cmos4vy9c0007f69gyr9xk4ij",
+      "userId": "3f0d38c7-43f2-484d-bba9-b08af755b8d7",
+      "productId": "2bab6b83-1496-4f5d-b0a1-354ff823a519",
+      "category": "Hogar",
+      "tag": null,
+      "weight": 2,
+      "source": "manual_interest",
+      "lastInteractedAt": "2026-05-05T04:34:08.300Z",
+      "createdAt": "2026-05-05T04:34:08.304Z",
+      "updatedAt": "2026-05-05T04:34:08.304Z"
+    },
+    {
+      "id": "cmos59y02000df69gk2c4cr04",
+      "userId": "3f0d38c7-43f2-484d-bba9-b08af755b8d7",
+      "productId": "8e82f75f-bed9-41ed-8ac4-22119850451d",
+      "category": "Tecnolog?a",
+      "tag": null,
+      "weight": 1,
+      "source": "product_view",
+      "lastInteractedAt": "2026-05-05T04:45:01.143Z",
+      "createdAt": "2026-05-05T04:45:01.154Z",
+      "updatedAt": "2026-05-05T04:45:01.154Z"
+    }
+  ],
+  "productVisits": [
+    {
+      "id": "cmoqacq3v0001tr8gq79p5r09",
+      "userId": null,
+      "productId": "2bab6b83-1496-4f5d-b0a1-354ff823a519",
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "sessionId": "2ef7114a-588c-424c-a7e6-97e28ad3fe2d",
+      "referrer": "http://localhost:3000/productos/set-de-cojines-decorativos-f2f339",
+      "dwellSeconds": null,
+      "visitedAt": "2026-05-03T21:31:36.589Z"
+    },
+    {
+      "id": "cmoqadv1f0005tr8g74869u3o",
+      "userId": null,
+      "productId": "2bab6b83-1496-4f5d-b0a1-354ff823a519",
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "sessionId": "2ef7114a-588c-424c-a7e6-97e28ad3fe2d",
+      "referrer": "http://localhost:3000/productos/set-de-cojines-decorativos-f2f339",
+      "dwellSeconds": null,
+      "visitedAt": "2026-05-03T21:32:29.667Z"
+    },
+    {
+      "id": "cmos441yq0001trokxu7c164p",
+      "userId": null,
+      "productId": "2bab6b83-1496-4f5d-b0a1-354ff823a519",
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "sessionId": "2ef7114a-588c-424c-a7e6-97e28ad3fe2d",
+      "referrer": "http://localhost:3000/productos/set-de-cojines-decorativos-f2f339",
+      "dwellSeconds": null,
+      "visitedAt": "2026-05-05T04:12:26.738Z"
+    },
+    {
+      "id": "cmos476u00005trokgezx51do",
+      "userId": null,
+      "productId": "2bab6b83-1496-4f5d-b0a1-354ff823a519",
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "sessionId": "2ef7114a-588c-424c-a7e6-97e28ad3fe2d",
+      "referrer": "http://localhost:3000/productos/set-de-cojines-decorativos-f2f339",
+      "dwellSeconds": null,
+      "visitedAt": "2026-05-05T04:14:53.017Z"
+    },
+    {
+      "id": "cmos4f1tx0009trokrdfdk5cs",
+      "userId": null,
+      "productId": "2bab6b83-1496-4f5d-b0a1-354ff823a519",
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "sessionId": "2ef7114a-588c-424c-a7e6-97e28ad3fe2d",
+      "referrer": "http://localhost:3000/productos/set-de-cojines-decorativos-f2f339",
+      "dwellSeconds": null,
+      "visitedAt": "2026-05-05T04:20:59.782Z"
+    },
+    {
+      "id": "cmos4ualf0001f69gh9atc19l",
+      "userId": "3f0d38c7-43f2-484d-bba9-b08af755b8d7",
+      "productId": "2bab6b83-1496-4f5d-b0a1-354ff823a519",
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "sessionId": "d97cc67e-e75f-4569-8d93-e984ce49d971",
+      "referrer": "http://localhost:3000/productos/set-de-cojines-decorativos-f2f339",
+      "dwellSeconds": null,
+      "visitedAt": "2026-05-05T04:32:50.977Z"
+    },
+    {
+      "id": "cmos59xk40009f69g0gu2ts4j",
+      "userId": "3f0d38c7-43f2-484d-bba9-b08af755b8d7",
+      "productId": "8e82f75f-bed9-41ed-8ac4-22119850451d",
+      "emprendimientoId": "9711506f-9465-4cfa-9110-b10bc9614ee1",
+      "sessionId": "d97cc67e-e75f-4569-8d93-e984ce49d971",
+      "referrer": "http://localhost:3000/productos/soporte-magntico-para-auto-971150",
+      "dwellSeconds": null,
+      "visitedAt": "2026-05-05T04:45:00.581Z"
+    }
+  ],
+  "emprendimientoVisits": [
+    {
+      "id": "cmoqacq920003tr8gakg1zok8",
+      "userId": null,
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "sessionId": "2ef7114a-588c-424c-a7e6-97e28ad3fe2d",
+      "referrer": "http://localhost:3000/productos/set-de-cojines-decorativos-f2f339",
+      "visitedAt": "2026-05-03T21:31:36.807Z"
+    },
+    {
+      "id": "cmoqadv6g0007tr8gxnyloa5a",
+      "userId": null,
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "sessionId": "2ef7114a-588c-424c-a7e6-97e28ad3fe2d",
+      "referrer": "http://localhost:3000/productos/set-de-cojines-decorativos-f2f339",
+      "visitedAt": "2026-05-03T21:32:29.849Z"
+    },
+    {
+      "id": "cmos4423n0003trokcz9m3i0g",
+      "userId": null,
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "sessionId": "2ef7114a-588c-424c-a7e6-97e28ad3fe2d",
+      "referrer": "http://localhost:3000/productos/set-de-cojines-decorativos-f2f339",
+      "visitedAt": "2026-05-05T04:12:26.915Z"
+    },
+    {
+      "id": "cmos476zf0007trokwzd66q88",
+      "userId": null,
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "sessionId": "2ef7114a-588c-424c-a7e6-97e28ad3fe2d",
+      "referrer": "http://localhost:3000/productos/set-de-cojines-decorativos-f2f339",
+      "visitedAt": "2026-05-05T04:14:53.212Z"
+    },
+    {
+      "id": "cmos4f1z9000btrokt2ww7slc",
+      "userId": null,
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "sessionId": "2ef7114a-588c-424c-a7e6-97e28ad3fe2d",
+      "referrer": "http://localhost:3000/productos/set-de-cojines-decorativos-f2f339",
+      "visitedAt": "2026-05-05T04:20:59.974Z"
+    },
+    {
+      "id": "cmos4uask0003f69g92jnwi2w",
+      "userId": "3f0d38c7-43f2-484d-bba9-b08af755b8d7",
+      "emprendimientoId": "f2f3399e-f62e-4d0d-9478-4dd40630a33d",
+      "sessionId": "d97cc67e-e75f-4569-8d93-e984ce49d971",
+      "referrer": "http://localhost:3000/productos/set-de-cojines-decorativos-f2f339",
+      "visitedAt": "2026-05-05T04:32:51.236Z"
+    },
+    {
+      "id": "cmos59xph000bf69gl7jqe0w4",
+      "userId": "3f0d38c7-43f2-484d-bba9-b08af755b8d7",
+      "emprendimientoId": "9711506f-9465-4cfa-9110-b10bc9614ee1",
+      "sessionId": "d97cc67e-e75f-4569-8d93-e984ce49d971",
+      "referrer": "http://localhost:3000/productos/soporte-magntico-para-auto-971150",
+      "visitedAt": "2026-05-05T04:45:00.773Z"
+    }
+  ],
+  "favoriteProducts": [
+    {
+      "userId": "3f0d38c7-43f2-484d-bba9-b08af755b8d7",
+      "productId": "2bab6b83-1496-4f5d-b0a1-354ff823a519",
+      "createdAt": "2026-05-05T04:34:20.960Z"
+    }
+  ],
+  "followedEmprendimientos": []
+}

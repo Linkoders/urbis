@@ -17,7 +17,7 @@ interface ConjuntoOption {
 
 const DRAFT_KEY = "urbis-register-draft-v2";
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4;
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -44,9 +44,6 @@ export default function RegisterPage() {
   const [conjuntos, setConjuntos] = useState<ConjuntoOption[]>([]);
   const [geoLocation, setGeoLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locating, setLocating] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
-  const [verificationFallbackCode, setVerificationFallbackCode] = useState("");
-  const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -248,10 +245,6 @@ export default function RegisterPage() {
       return acceptedTerms;
     }
 
-    if (step === 5) {
-      return Boolean(verificationCode.trim() && pendingVerificationEmail.trim());
-    }
-
     return false;
   }
 
@@ -309,44 +302,9 @@ export default function RegisterPage() {
         }),
       });
 
-      const data = (await response.json()) as {
-        error?: string;
-        requiresEmailVerification?: boolean;
-        verificationFallbackCode?: string;
-      };
-      if (!response.ok) {
-        setError(data.error ?? "No se pudo crear la cuenta.");
-        return;
-      }
-
-      setPendingVerificationEmail(email.trim().toLowerCase());
-      setVerificationFallbackCode(data.verificationFallbackCode ?? "");
-      setStep(5);
-    } catch {
-      setError("Ocurrió un error al crear la cuenta.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function submitVerification(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      const response = await fetch("/api/auth/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: pendingVerificationEmail,
-          code: verificationCode,
-        }),
-      });
-
       const data = (await response.json()) as { error?: string };
       if (!response.ok) {
-        setError(data.error ?? "No se pudo verificar el correo.");
+        setError(data.error ?? "No se pudo crear la cuenta.");
         return;
       }
 
@@ -356,7 +314,7 @@ export default function RegisterPage() {
       router.push("/productos?scope=my_conjunto");
       router.refresh();
     } catch {
-      setError("No se pudo verificar el correo.");
+      setError("Ocurrió un error al crear la cuenta.");
     } finally {
       setLoading(false);
     }
@@ -383,10 +341,10 @@ export default function RegisterPage() {
         <h1 className="mt-3 font-[family-name:var(--font-display)] text-4xl font-semibold sm:text-5xl">
           Crear cuenta
         </h1>
-        <p className="mt-4 text-zinc-300">Registro por pasos con verificación de correo electrónico.</p>
+        <p className="mt-4 text-zinc-300">Registro por pasos con acceso inmediato.</p>
 
-        <div className="mt-6 grid grid-cols-5 gap-2">
-          {[1, 2, 3, 4, 5].map((value) => (
+        <div className="mt-6 grid grid-cols-4 gap-2">
+          {[1, 2, 3, 4].map((value) => (
             <div
               key={value}
               className={`h-1.5 ${step >= value ? "bg-emerald-300" : "bg-white/20"}`}
@@ -394,8 +352,7 @@ export default function RegisterPage() {
           ))}
         </div>
 
-        {step < 5 ? (
-          <form className="mt-8 grid gap-5" onSubmit={handleSubmit}>
+        <form className="mt-8 grid gap-5" onSubmit={handleSubmit}>
             {step === 1 ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
@@ -677,33 +634,6 @@ export default function RegisterPage() {
               )}
             </div>
           </form>
-        ) : (
-          <form className="mt-8 grid gap-4" onSubmit={submitVerification}>
-            <p className="text-zinc-300">
-              Te enviamos un código de verificación a <strong>{pendingVerificationEmail}</strong>.
-            </p>
-            <input
-              value={verificationCode}
-              onChange={(event) => setVerificationCode(event.target.value)}
-              placeholder="Código de 6 dígitos"
-              className="w-full border border-white/20 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-emerald-300"
-              required
-            />
-            {verificationFallbackCode ? (
-              <p className="text-xs text-amber-300">
-                Código de respaldo (desarrollo): {verificationFallbackCode}
-              </p>
-            ) : null}
-            {error ? <p className="text-sm text-red-300">{error}</p> : null}
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-zinc-100 px-5 py-3 text-sm font-bold uppercase tracking-[0.16em] text-black transition hover:bg-white disabled:opacity-70"
-            >
-              {loading ? "Verificando..." : "Verificar correo"}
-            </button>
-          </form>
-        )}
 
         <div className="mt-8 flex flex-wrap gap-4 text-sm uppercase tracking-[0.12em] text-zinc-300">
           <Link href="/auth/login" className="hover:text-white">

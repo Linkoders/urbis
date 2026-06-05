@@ -4,19 +4,15 @@ import {
   createPasswordHash,
   pushInAppNotification,
   readDb,
+  SESSION_COOKIE,
   writeDb,
 } from "@/lib/urbis-store";
 import { prisma } from "@/lib/prisma";
 import { isBlobStorageUrl } from "@/lib/blob-utils";
 import { parseGoogleMapsLocation } from "@/lib/google-maps";
-import { sendEmailNotification } from "@/lib/email-service";
 import type { UserRole } from "@/lib/urbis-types";
 
 export const runtime = "nodejs";
-
-function createVerificationCode(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
 
 function isValidAvatarUrl(value: string): boolean {
   if (!value) return false;
@@ -125,8 +121,6 @@ export async function POST(request: Request) {
 
     const userId = createId();
     const createdAt = new Date().toISOString();
-    const emailVerificationCode = createVerificationCode();
-
     db.users.push({
       id: userId,
       name,
@@ -141,8 +135,8 @@ export async function POST(request: Request) {
       subscriptionStatus: "inactive",
       subscriptionPaymentMethod: null,
       subscriptionUpdatedAt: createdAt,
-      emailVerifiedAt: null,
-      emailVerificationCode,
+      emailVerifiedAt: createdAt,
+      emailVerificationCode: null,
       acceptedTermsAt: createdAt,
       createdAt,
     });
@@ -197,16 +191,6 @@ export async function POST(request: Request) {
 
     await writeDb(db);
 
-    const emailResult = await sendEmailNotification({
-      to: email,
-      subject: "Verifica tu correo en URBIS",
-      html: `<p>Hola ${name},</p>
-<p>Tu código de verificación es:</p>
-<p style="font-size:24px;font-weight:700;letter-spacing:3px">${emailVerificationCode}</p>
-<p>Ingresa este código en URBIS para activar tu cuenta.</p>`,
-      text: `Hola ${name}. Tu código de verificación de URBIS es ${emailVerificationCode}.`,
-    });
-
     await prisma.notificationPreferenceRecord.upsert({
       where: { userId },
       update: {},
@@ -238,14 +222,7 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({
       ok: true,
-      message: emailResult.ok
-        ? "Cuenta creada. Revisa tu correo e ingresa el código de verificación."
-        : "Cuenta creada. No se pudo enviar correo, pero puedes verificar con el código de respaldo.",
-      requiresEmailVerification: true,
-      verificationFallbackCode:
-        !emailResult.ok && process.env.NODE_ENV !== "production"
-          ? emailVerificationCode
-          : undefined,
+      message: "Cuenta creada correctamente.",
       onboardingMessage:
         role === "admin_conjunto"
           ? "Cuenta creada. Tu solicitud de conjunto fue enviada."
@@ -262,7 +239,14 @@ export async function POST(request: Request) {
         subscriptionStatus: "inactive",
         subscriptionPaymentMethod: null,
         subscriptionUpdatedAt: createdAt,
+        emailVerifiedAt: createdAt,
       },
+    });
+    response.cookies.set(SESSION_COOKIE, userId, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return response;
